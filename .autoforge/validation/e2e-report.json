@@ -1,0 +1,148 @@
+{
+  "ranAt": "2026-09-23T04:16:57.981Z",
+  "browser": "headless Chromium via CDP (ms-playwright cache)",
+  "steps": [
+    {
+      "step": "boot: exactly one section visible",
+      "ok": true,
+      "detail": "visible=1 (library)"
+    },
+    {
+      "step": "privacy: network requests after initial load",
+      "ok": true,
+      "detail": "15 requests total since load (informational)"
+    },
+    {
+      "step": "import: calibration.txt appears in library",
+      "ok": true,
+      "detail": "calibration (txt, 176 words)OpenDelete"
+    },
+    {
+      "step": "import: assets/sample.txt imports (public-domain calibration text)",
+      "ok": true,
+      "detail": "405 words"
+    },
+    {
+      "step": "ADR-3 gate: real Gutenberg EPUB imports with title + word count",
+      "ok": true,
+      "detail": "Pride and Prejudice (epub, 130614 words)OpenDelete"
+    },
+    {
+      "step": "open: player view becomes the single visible section",
+      "ok": true
+    },
+    {
+      "step": "player: playback starts automatically on open",
+      "ok": true
+    },
+    {
+      "step": "rsvp: ORP character rendered at anchor",
+      "ok": true,
+      "detail": "orp=\"n\""
+    },
+    {
+      "step": "a11y: live region announced a sentence boundary",
+      "ok": true,
+      "detail": "to end."
+    },
+    {
+      "step": "visibility: playback pauses when tab hidden",
+      "ok": true
+    },
+    {
+      "step": "session: completion routes to quiz",
+      "ok": true,
+      "detail": "5 questions"
+    },
+    {
+      "step": "quiz: answers are the reader's own (inputs empty, no prefill)",
+      "ok": true
+    },
+    {
+      "step": "dashboard: session row rendered with comprehension",
+      "ok": true,
+      "detail": "rows=2"
+    },
+    {
+      "step": "dashboard: summary shows wpm + comprehension trend",
+      "ok": true,
+      "detail": "1 sessions · best 1505 wpm · avg 1505 wpm · avg comprehension 0% · trend flat"
+    },
+    {
+      "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
+      "ok": true
+    },
+    {
+      "step": "persistence: text survives reload",
+      "ok": true,
+      "detail": "library item present after reload"
+    },
+    {
+      "step": "a11y: reduced-motion defaults to manual sentence mode (no autoplay)",
+      "ok": true,
+      "detail": "srPanel=true playLabel=\"Play\""
+    },
+    {
+      "step": "a11y: body text contrast >= 4.5:1",
+      "ok": true,
+      "detail": "ratio=18.88"
+    },
+    {
+      "step": "privacy: zero external/telemetry network requests (only same-origin static assets)",
+      "ok": true,
+      "detail": "47 requests total, all same-origin static assets; no fetch/XHR/beacon"
+    }
+  ],
+  "passed": 19,
+  "failed": 0,
+  "networkRequests": [
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/epub.js",
+    "http://127.0.0.1:8177/src/lib/zip.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js"
+  ],
+  "verdict": "GO"
+}

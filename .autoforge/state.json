@@ -1,0 +1,53 @@
+{
+  "run": "speedreading-001",
+  "objective": "Build an app to train speed reading: only the most proven techniques to increase reading + comprehension speed; convert books/texts into 1-3 word chunks on screen (RSVP-style) to train peripheral vision and comprehension.",
+  "phase": "complete",
+  "loop": 2,
+  "verdict": "GO",
+  "evidence": {
+    "unit": "node --test -> 75 pass / 0 fail",
+    "e2e": ".autoforge/validation/e2e-walkthrough.mjs -> 19/19 PASS (headless Chromium via CDP): real Gutenberg EPUB import 130,614 words; quiz real scoring; persistence; reduced-motion mode; contrast 18.88:1; zero external network",
+    "validator": ".autoforge/validation/report.md -> GO, 5/5 criteria PASS, 0 NOT VERIFIED",
+    "investigator": ".autoforge/validation/investigation.md -> REPLAN items addressed in loop 2 or documented limitations",
+    "reviews": ".autoforge/reviews/*.md (18 files, all modules independently reviewed)"
+  },
+  "modules": [
+    {"id": "shell", "status": "approved_with_notes", "review": ".autoforge/reviews/shell.md"},
+    {"id": "lib-text", "status": "approved", "review": ".autoforge/reviews/lib-text-r2.md"},
+    {"id": "lib-orp", "status": "approved", "review": ".autoforge/reviews/lib-orp-r2.md"},
+    {"id": "lib-quiz", "status": "approved_with_notes", "review": ".autoforge/reviews/lib-quiz.md", "loop2": "stopword expansion"},
+    {"id": "lib-metrics", "status": "approved_with_notes", "review": ".autoforge/reviews/lib-metrics.md"},
+    {"id": "lib-store", "status": "approved_with_notes", "review": ".autoforge/reviews/lib-store.md"},
+    {"id": "epub-import", "status": "approved_with_notes", "review": ".autoforge/reviews/epub-import.md", "gate": "real EPUB PASS in browser"},
+    {"id": "docs-assets", "status": "approved", "review": ".autoforge/reviews/docs-assets-r2.md"},
+    {"id": "lib-player", "status": "approved", "review": ".autoforge/reviews/lib-player-r2.md"},
+    {"id": "lib-pipeline", "status": "approved_with_notes", "review": ".autoforge/reviews/lib-pipeline-r2.md"},
+    {"id": "ui-library", "status": "approved_with_notes", "review": ".autoforge/reviews/ui-library.md", "loop2": "wordCount fallback + replaceChildren"},
+    {"id": "ui-player-view", "status": "approved", "review": ".autoforge/reviews/ui-player-view-r3.md"},
+    {"id": "ui-quiz-view", "status": "approved", "review": ".autoforge/reviews/ui-quiz-view-r2.md", "loop2": "no prefill (assessment semantics)"},
+    {"id": "ui-dashboard", "status": "approved_with_notes", "review": ".autoforge/reviews/ui-dashboard-r2.md"},
+    {"id": "app", "status": "approved_with_notes", "review": ".autoforge/reviews/app.md", "loop2": "idempotence, chunkSize capture, dead-end routing, focusMain, sort, chapter pick"},
+    {"id": "verify-acceptance", "status": "complete", "artifact": ".autoforge/validation/e2e-report.json"}
+  ],
+  "known_limitations": [
+    "Only the first substantial chapter is readable (no chapter picker) — plan §1a gap",
+    "Heuristic cloze quiz quality is approximate (documented, labeled in UI)",
+    "IndexedDB quota/abort failure paths not exercised in a real browser",
+    "Screen-reader manual mode not tested with a real screen reader",
+    "WPM uses pause-excluded active time capped per chunk gap (4x expected + 250ms)"
+  ],
+  "artifacts": {
+    "discovery/report.md": "complete",
+    "requirements/grilling.md": "complete",
+    "architecture/report.md": "complete",
+    "architecture/decisions.md": "complete",
+    "plans/plan.md": "complete (v1.1 critic fixes)",
+    "execution/work-order.json": "complete (v1.1)",
+    "reviews/": "18 module/plan reviews",
+    "validation/report.md": "GO",
+    "validation/investigation.md": "REPLAN items addressed",
+    "validation/e2e-walkthrough.mjs": "runnable tool",
+    "validation/e2e-report.json": "19/19 PASS"
+  },
+  "updated": "2026-09-22"
+}

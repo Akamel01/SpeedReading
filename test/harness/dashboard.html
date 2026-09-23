@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Harness</title>
+  <style>
+    .dashboard-root { font-family: Arial, sans-serif; padding: 16px; }
+    .dashboard-summary { margin: 8px 0; }
+    .summary-line { display: flex; gap: 12px; align-items: center; }
+    .stat { font-weight: bold; }
+    .legend { font-size: 12px; color: #666; }
+    .sessions-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .sessions-table th, .sessions-table td { border: 1px solid #ddd; padding: 6px 8px; }
+    .btn { padding: 6px 12px; border: 1px solid #ccc; background: #f6f6f6; cursor: pointer; }
+    .badge { padding: 2px 6px; border-radius: 4px; background: #eee; font-size: 12px; }
+    .badge.trend.up { background: #c8f0c8; }
+    .badge.trend.flat { background: #eee; }
+    .badge.trend.down { background: #f9d6d6; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import { createDashboard } from "../../src/ui/dashboard.js";
+
+    const root = document.getElementById('root');
+    const dash = createDashboard(root, {
+      onStartSession: (textId) => console.log('start', textId),
+      onExport: () => console.log('export'),
+      onImportJson: (json) => console.log('import', json),
+      onAcceptWpm: (n) => console.log('accepted wpm', n)
+    });
+
+    const now = Date.now();
+    const sessions = [
+      { startedAt: now - 86400000, kind: 'baseline', chunkSize: 2, targetWpm: 110, wpm: 112, wordCount: 120, elapsedMs: 60000, comprehensionPct: 86 },
+      { startedAt: now - 2*86400000, kind: 'read', chunkSize: 1, targetWpm: 120, wpm: 125, wordCount: 90, elapsedMs: 50000, comprehensionPct: 78 },
+      { startedAt: now - 3*86400000, kind: 'read', chunkSize: 3, targetWpm: 130, wpm: 128, wordCount: 100, elapsedMs: 70000, comprehensionPct: 90 }
+    ];
+    dash.render({ sessions });
+  </script>
+</body>
+</html>

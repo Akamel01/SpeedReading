@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Library Harness</title>
+  </head>
+  <body>
+    <!-- Root required by contract: #view-library section element -->
+    <section id="view-library" aria-label="Library View" class="view-library"></section>
+
+    <script type="module">
+      // Import the UI library module (ESM)
+      import { createLibraryView } from '../../src/ui/library.js';
+
+      const root = document.getElementById('view-library');
+
+      const handlers = {
+        onImportFile: (f) => console.log('importFile', f.name),
+        onOpenText: (id) => console.log('open', id),
+        onDeleteText: (id) => console.log('delete', id),
+        onExport: () => console.log('export'),
+        onImportJson: (json) => console.log('importJson', json)
+      };
+
+      const view = createLibraryView(root, handlers);
+
+      const sample = [
+        { id: 't1', title: 'Chapter 1', source: 'txt', wordCount: 120 },
+        { id: 't2', title: 'Book Epibook', source: 'epub', wordCount: 2400 }
+      ];
+
+      // Render initial data
+      view.render(sample);
+    </script>
+  </body>
+  </html>

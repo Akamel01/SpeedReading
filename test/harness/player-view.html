@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Player View Harness</title>
+  </head>
+  <body>
+    <section id="view-player"></section>
+    <script type="module">
+      import { createPlayerView } from '../../src/ui/player-view.js';
+      import { createPlayer } from '../../src/lib/player.js';
+      import { tokenize, chunk } from '../../src/lib/text.js';
+
+      const root = document.getElementById('view-player');
+      const view = createPlayerView(root, {
+        onSessionEnd: (payload) => console.log('[HARNESS] sessionEnd', payload),
+        onExit: () => console.log('[HARNESS] exit() called'),
+        onSettingsChange: (partial) => console.log('[HARNESS] settings-change', partial),
+      });
+
+      const text = {
+        title: 'Calibration text',
+        text: 'This is the first sentence. Here is another one! And a third.',
+      };
+      const chunks = chunk(tokenize(text.text), { size: 2 });
+      const player = createPlayer({ chunks, wpm: 300 });
+
+      // Real API: subscribe to the player's real events; playback is user-driven (Space / Play).
+      player.on('chunk', (event) => console.log('[HARNESS] chunk', event.index));
+      player.on('end', () => console.log('[HARNESS] end'));
+
+      view.start({ player, text });
+      view.renderSettings({ fontScale: 1, textAlign: 'center', orpEnabled: true, chunkSize: 2, reducedMotion: 'auto', wpm: 300 });
+    </script>
+  </body>
+</html>

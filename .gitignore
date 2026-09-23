@@ -1,0 +1,15 @@
+# Build / tooling noise — never commit
+node_modules/
+npm-debug.log*
+.DS_Store
+*.log
+
+# Local editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+
+# E2E run artifacts live under .autoforge/validation/ (committed as evidence);
+# browser profiles and downloads stay outside the repo
+/tmp/

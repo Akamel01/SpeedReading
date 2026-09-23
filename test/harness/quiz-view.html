@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Quiz View Harness</title>
+  </head>
+  <body>
+    <div id="view-quiz" class="quiz-root"></div>
+    <script type="module">
+      import { createQuizView } from '../../src/ui/quiz-view.js';
+
+      const root = document.getElementById('view-quiz');
+      // Simple onSave/onCancel handlers for harness
+      const onSave = (quiz) => {
+        console.log('quiz saved', quiz);
+      };
+      const onCancel = () => {
+        console.log('quiz canceled');
+      };
+
+      const view = createQuizView(root, { onSave, onCancel });
+
+      const sample = {
+        questions: [
+          {
+            id: 'q1',
+            kind: 'cloze',
+            sentence: 'The capital of France is ____.',
+            answer: 'Paris',
+            accepted: ['Paris'],
+            candidates: ['Paris', 'Lyon', 'Marseille']
+          },
+          {
+            id: 'q2',
+            kind: 'cloze',
+            sentence: '2 + 2 = ____',
+            answer: '4',
+            accepted: ['4'],
+            candidates: ['3', '4', '5']
+          }
+        ]
+      };
+
+      view.start(sample);
+    </script>
+  </body>
+  </html>
