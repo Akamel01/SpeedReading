@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Lap rows per spec (number, WPM, comp%, paired delta; best in marker; 3-word experimental badge)
-- [ ] Suggestion card with Accept + Dismiss, explicit-only application
-- [ ] Summary, export/import, start-session behavior identical
-- [ ] `node --test` green
+- [x] Lap rows per spec (number, WPM, comp%, paired delta; best in marker; 3-word experimental badge)
+- [x] Suggestion card with Accept + Dismiss, explicit-only application
+- [x] Summary, export/import, start-session behavior identical
+- [x] `node --test` green
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement. State: ready-for-agent.
 **Key interfaces:** dashboard contract; summarize/suggest contracts; `sessionTicks` best flag; tokens; `h()`.
 **Acceptance criteria:** spec match; deltas never naked; suggestion never auto-applies; behaviors identical; `node --test` green.
 **Out of scope:** changing summary math or suggestion rules (ADR-9 holds); export format changes.
+
+## Resolution
+
+Delivered 2026-09-23 (RS5). Lap rows ('Lap N' + best underline + paired delta column beside comprehension + experimental badge), Accept/Dismiss suggestion, h() migration; .dashboard-best/delta styles added after review blocker. Review: reviews/S-chain.md + S-chain-r2.md APPROVED.

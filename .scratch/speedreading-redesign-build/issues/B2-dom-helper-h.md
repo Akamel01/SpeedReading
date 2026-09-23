@@ -8,9 +8,9 @@
 
 **Status:** ready-for-agent
 
-- [ ] New `h()` module: `h(tag, attrs, ...children)` with `on:` listener shorthand and `class:` string, plus structure tests
-- [ ] No view migrated yet (migration happens inside each surface ticket)
-- [ ] `node --test` green
+- [x] New `h()` module: `h(tag, attrs, ...children)` with `on:` listener shorthand and `class:` string, plus structure tests
+- [x] No view migrated yet (migration happens inside each surface ticket)
+- [x] `node --test` green
 
 ## Comments
 
@@ -28,3 +28,7 @@ Triage: enhancement; no helper exists (verified — createElement repeated acros
 **Key interfaces:** the `h` function contract only; no view changes in this ticket.
 **Acceptance criteria:** structure tests green; zero changes to existing views; `node --test` green.
 **Out of scope:** migrating any view (S2–S5 do that per surface); touching styles or behavior.
+
+## Resolution
+
+Delivered 2026-09-23 (M-RB2). h(tag, attrs, ...children) in src/ui/h.js with class/on/attrs and text-node children; harness structural checks run against the real module in headless Chromium. Review: reviews/M-RB2.md APPROVED.

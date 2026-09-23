@@ -29,3 +29,7 @@ B3 ──┴──► S1 ─────────╯              ╯(S4←B2
 | S5 | log-lap-rows | enhancement | ready-for-agent | B1, B2, B3, S4 |
 | S6 | motion-responsive | enhancement | ready-for-agent | S5 |
 | S7 | green-release | enhancement | ready-for-agent | S6 |
+
+## Resolution
+
+Run speedreading-002 2026-09-23: B1–B3 and S1–S7 all delivered; S-chain reviewed (blockers fixed: lib splitter in SR mode, best/delta styling, motion gaps) and re-reviewed APPROVED; S7 released: suite 109/109, walkthrough 39/39 GO, pushed 4328fed, live URL verified serving the redesign (tokens.css folio/iron).

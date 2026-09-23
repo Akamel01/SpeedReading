@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Stage, rail (desktop) / tick strip (mobile), setup block per spec; best lap tick in marker
-- [ ] Rail renders from `sessionTicks`; SR mode consumes lib `splitSentences`
-- [ ] Playback timing, keyboard map, announcements behavior-identical
-- [ ] `node --test` green
+- [x] Stage, rail (desktop) / tick strip (mobile), setup block per spec; best lap tick in marker
+- [x] Rail renders from `sessionTicks`; SR mode consumes lib `splitSentences`
+- [x] Playback timing, keyboard map, announcements behavior-identical
+- [x] `node --test` green
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement. State: ready-for-agent.
 **Key interfaces:** player engine events; `sessionTicks`/`splitSentences` contracts; player-view contract; tokens; `h()`.
 **Acceptance criteria:** spec match incl. rail ticks and best-lap marker; setup block controls persist settings as before; playback/keyboard/a11y behavior identical; `node --test` green.
 **Out of scope:** engine, scoring, storage, quiz changes.
+
+## Resolution
+
+Delivered 2026-09-23 (RS3). Page card + marginalia rail (sessionTicks; best in marker) + setup block labels per spec; SR mode now consumes lib splitSentences (blocker fixed after review); fixed ORP anchor grid preserved. Review: reviews/S-chain.md + S-chain-r2.md APPROVED.

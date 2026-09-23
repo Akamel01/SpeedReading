@@ -8,9 +8,9 @@
 
 **Status:** ready-for-agent
 
-- [ ] Submit reads "Check answers"; note and empty-state copy per spec; spec styling
-- [ ] Inputs still start empty; expected answers never rendered while answering
-- [ ] `h()` migration; scoring identical; `node --test` green
+- [x] Submit reads "Check answers"; note and empty-state copy per spec; spec styling
+- [x] Inputs still start empty; expected answers never rendered while answering
+- [x] `h()` migration; scoring identical; `node --test` green
 
 ## Comments
 
@@ -28,3 +28,7 @@ Triage: enhancement. State: ready-for-agent.
 **Key interfaces:** quiz view contract; scoring contract; tokens; `h()`.
 **Acceptance criteria:** copy matches spec verbatim; honesty invariants hold (verified by existing 0%-on-wrong-answers behavior); `node --test` green.
 **Out of scope:** authoring mode (follow-ups ticket 02); generator changes.
+
+## Resolution
+
+Delivered 2026-09-23 (RS4). Quiz copy frozen ('Check answers'; note verbatim); h() migration; answering exclusion intact; status cross-fade. Review: reviews/S-chain.md APPROVED.

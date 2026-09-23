@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Drill mode presents widening multi-word previews at a fixed anchor without claiming speed gains
-- [ ] UI copy frames it as calibration practice, consistent with the evidence notes
-- [ ] Drill results feed the existing progress dashboard (same session/comprehension semantics)
-- [ ] `node --test` green; overclaim check passes
+- [x] Drill mode presents widening multi-word previews at a fixed anchor without claiming speed gains
+- [x] UI copy frames it as calibration practice, consistent with the evidence notes
+- [x] Drill results feed the existing progress dashboard (same session/comprehension semantics)
+- [x] `node --test` green; overclaim check passes
 
 ## Comments
 
@@ -36,12 +36,16 @@ A drill mode shows widening multi-word previews around the fixed ORP anchor at t
 - Session/progress records: drill results recorded with the same WPM/comprehension honesty rules
 
 **Acceptance criteria:**
-- [ ] Drill renders widening previews at the fixed anchor with recognition checks
-- [ ] Overclaim check passes: no UI/doc/metric promises speed gains from the drill
-- [ ] Drill sessions appear in progress with the same honesty rules as reading sessions
-- [ ] `node --test` green
+- [x] Drill renders widening previews at the fixed anchor with recognition checks
+- [x] Overclaim check passes: no UI/doc/metric promises speed gains from the drill
+- [x] Drill sessions appear in progress with the same honesty rules as reading sessions
+- [x] `node --test` green
 
 **Out of scope:**
 - Eye-tracking hardware or saccade measurement
 - Any "double your speed" style claim (grilling gate 5 — hard stop)
 - Changing RSVP pacing or quiz designs
+
+## Resolution
+
+Delivered 2026-09-23 (M-F10). Preview drill in player-view (fixed anchor, variable preview width via additive player lookahead); inline recognition checks scored against the real next word; sessions carry drill:'span' + recognition counts (quiz score stored separately after review fix); dashboard labels '· span drill'. No speed-gain claims (scoped copy-gate). Review: reviews/M-F10-r2.md APPROVED.

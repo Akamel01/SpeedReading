@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Automated browser test exports data and re-imports it into a fresh profile with records intact
-- [ ] Import with wrong schema version is rejected with a readable error and existing data untouched
-- [ ] The user-confirm step is covered (dialog accepted and dismissed paths)
-- [ ] `node --test` green; walkthrough extended or a focused script committed
+- [x] Automated browser test exports data and re-imports it into a fresh profile with records intact
+- [x] Import with wrong schema version is rejected with a readable error and existing data untouched
+- [x] The user-confirm step is covered (dialog accepted and dismissed paths)
+- [x] `node --test` green; walkthrough extended or a focused script committed
 
 ## Comments
 
@@ -36,12 +36,16 @@ An automated browser run seeds a text plus a session, exports the snapshot, clea
 - The zero-dependency browser walkthrough harness: extend it or add a focused script beside it
 
 **Acceptance criteria:**
-- [ ] Round-trip test: seeded records survive export → wipe → UI import with confirm
-- [ ] Negative test: wrong-schema file rejected, readable error, prior data intact
-- [ ] Dialog test: dismissing confirm performs no import and loses nothing
-- [ ] `node --test` green; walkthrough report records the new steps
+- [x] Round-trip test: seeded records survive export → wipe → UI import with confirm
+- [x] Negative test: wrong-schema file rejected, readable error, prior data intact
+- [x] Dialog test: dismissing confirm performs no import and loses nothing
+- [x] `node --test` green; walkthrough report records the new steps
 
 **Out of scope:**
 - Cloud backup or sync (contradicts ADR-10)
 - Changing the export schema
 - Testing quota-exceeded paths (see ticket 07)
+
+## Resolution
+
+Delivered 2026-09-23 (M-F05). scripts/export-import.js (zero-dep CDP, real UI/store): real export download, storage wipe, import accept/dismiss, wrong-schema negative with data intact — 5/5. Review: reviews/M-F05.md APPROVED_WITH_NOTES.

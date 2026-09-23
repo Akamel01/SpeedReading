@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Generated quiz can be opened in an authoring view showing questions with editable expected answers
-- [ ] Taking a quiz never reveals expected answers (inputs start empty)
-- [ ] Edited quizzes persist and score against the edited expectations
-- [ ] `node --test` green; quiz record shape stays backward compatible
+- [x] Generated quiz can be opened in an authoring view showing questions with editable expected answers
+- [x] Taking a quiz never reveals expected answers (inputs start empty)
+- [x] Edited quizzes persist and score against the edited expectations
+- [x] `node --test` green; quiz record shape stays backward compatible
 
 ## Comments
 
@@ -36,13 +36,17 @@ From a quiz (before taking it, or from the library entry), the owner can open an
 - The existing quiz-start/save callback contract: answering keeps its shape; authoring gets its own entry point
 
 **Acceptance criteria:**
-- [ ] Authoring view lists every generated question with editable expected answer and alternatives
-- [ ] Saving persists the edited quiz; taking it afterwards scores against the edited expectations
-- [ ] Answering inputs never contain expected answers in DOM or storage before save
-- [ ] Unedited quizzes behave exactly as before
-- [ ] `node --test` green
+- [x] Authoring view lists every generated question with editable expected answer and alternatives
+- [x] Saving persists the edited quiz; taking it afterwards scores against the edited expectations
+- [x] Answering inputs never contain expected answers in DOM or storage before save
+- [x] Unedited quizzes behave exactly as before
+- [x] `node --test` green
 
 **Out of scope:**
 - LLM-generated or hand-written question banks
 - Changing cloze generation heuristics (see ticket 04)
 - Sharing quizzes between texts
+
+## Resolution
+
+Delivered 2026-09-23 (M-F02). startAuthoring beside start; answering never reads expected answers (grep + DOM probe: answeringDomHasExpected=false); authoring prefill + edited:true payload verified in headless Chromium. Review: reviews/M-F02.md APPROVED_WITH_NOTES.

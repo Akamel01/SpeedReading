@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] `splitSentences` moved to the text module, abbreviation-aware (Mr/Mrs/Ms/Dr/St…), with table tests
-- [ ] `sessionTicks` in the metrics module returns `{wpm, comprehensionPct, best}` with table tests
-- [ ] Player-view consumes both (no local copies); behavior identical for existing inputs
-- [ ] `node --test` green
+- [x] `splitSentences` moved to the text module, abbreviation-aware (Mr/Mrs/Ms/Dr/St…), with table tests
+- [x] `sessionTicks` in the metrics module returns `{wpm, comprehensionPct, best}` with table tests
+- [x] Player-view consumes both (no local copies); behavior identical for existing inputs
+- [x] `node --test` green
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement; neither function exists in lib (verified — splitter is vi
 **Key interfaces:** text-module splitter (string in, sentence list out); metrics tick mapper (session list in, `{wpm, comprehensionPct, best}` list out).
 **Acceptance criteria:** table tests for abbreviations/empties/best flag; view shows zero behavior change on existing inputs; `node --test` green.
 **Out of scope:** changing SR-mode or rail rendering (surface tickets do that); touching scoring/storage.
+
+## Resolution
+
+Delivered 2026-09-23 (M-RB1). splitSentences abbreviation/initialism-aware in text.js; sessionTicks (first-max best) in metrics.js; suites 25/25 focused. Review: reviews/M-RB1.md APPROVED_WITH_NOTES.

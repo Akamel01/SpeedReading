@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] New pure function computes active milliseconds from chunk emission timestamps with a documented pause-exclusion cap
-- [ ] Unit tests cover: no pauses, one pause, hidden-tab gap, mid-session WPM change, single-chunk session
-- [ ] Composition root calls it; measured WPM behavior unchanged for the happy path
-- [ ] `node --test` green
+- [x] New pure function computes active milliseconds from chunk emission timestamps with a documented pause-exclusion cap
+- [x] Unit tests cover: no pauses, one pause, hidden-tab gap, mid-session WPM change, single-chunk session
+- [x] Composition root calls it; measured WPM behavior unchanged for the happy path
+- [x] `node --test` green
 
 ## Comments
 
@@ -36,13 +36,17 @@ A pure function takes an ordered list of chunk emission events (timestamp plus e
 - The session record's elapsed/WPM fields: unchanged semantics
 
 **Acceptance criteria:**
-- [ ] Unit tests: uninterrupted session equals sum of expected delays (± rounding)
-- [ ] Unit tests: a 10-second pause contributes at most the documented cap, not the full gap
-- [ ] Unit tests: mid-session WPM change uses each chunk's own expected duration
-- [ ] Unit tests: single-chunk and empty event lists don't produce NaN/Infinity
-- [ ] Browser walkthrough WPM for a fixed-speed session unchanged (within rounding)
-- [ ] `node --test` green
+- [x] Unit tests: uninterrupted session equals sum of expected delays (± rounding)
+- [x] Unit tests: a 10-second pause contributes at most the documented cap, not the full gap
+- [x] Unit tests: mid-session WPM change uses each chunk's own expected duration
+- [x] Unit tests: single-chunk and empty event lists don't produce NaN/Infinity
+- [x] Browser walkthrough WPM for a fixed-speed session unchanged (within rounding)
+- [x] `node --test` green
 
 **Out of scope:**
 - Changing the cap values' product behavior (document, don't retune, unless a test proves drift)
 - Moving any other composition-root logic
+
+## Resolution
+
+Delivered 2026-09-23 (M-F03). Pure activeMs(events) in metrics.js (per-gap min(gap, expectedMs*4+250)); app.js collects readEvents and calls it; equivalence + pause/hidden/WPM-change/empty cases tested. Review: reviews/M-F03.md APPROVED_WITH_NOTES.

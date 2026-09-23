@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Header uses the frozen translucent material (single layer, content scrolls beneath)
-- [ ] Active nav state visible for the current view; focus outline preserved
-- [ ] Reduced-transparency/contrast fallbacks applied
-- [ ] Routing behavior unchanged; `node --test` green
+- [x] Header uses the frozen translucent material (single layer, content scrolls beneath)
+- [x] Active nav state visible for the current view; focus outline preserved
+- [x] Reduced-transparency/contrast fallbacks applied
+- [x] Routing behavior unchanged; `node --test` green
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement; builds on B3. State: ready-for-agent.
 **Key interfaces:** existing nav routing contract; token layer for all values.
 **Acceptance criteria:** material values match spec; active state visible + keyboard-focusable; fallbacks verified by emulation; `node --test` green.
 **Out of scope:** changing routes, views, or copy.
+
+## Resolution
+
+Delivered 2026-09-23 (RS1). Translucent header material per frozen spec; active nav state (marker underline; text never on marker after review note); fallbacks per media queries. Review: reviews/S-chain.md + S-chain-r2.md.

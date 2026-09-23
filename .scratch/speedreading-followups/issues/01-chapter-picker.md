@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Chapter list is reachable from an open text and shows every chapter title
-- [ ] Jumping to a chapter restarts RSVP playback at that chapter with correct word counts
-- [ ] Session records identify the chapter read; dashboard stays correct for multi-chapter texts
-- [ ] `node --test` green; no ADR contradiction (ADR-7 keyboard/a11y rules apply to the new control)
+- [x] Chapter list is reachable from an open text and shows every chapter title
+- [x] Jumping to a chapter restarts RSVP playback at that chapter with correct word counts
+- [x] Session records identify the chapter read; dashboard stays correct for multi-chapter texts
+- [x] `node --test` green; no ADR contradiction (ADR-7 keyboard/a11y rules apply to the new control)
 
 ## Comments
 
@@ -36,13 +36,17 @@ The reader can open a chapter list for the current text, pick any chapter, and p
 - The player view's start contract (player + text object) and settings flow: reused unchanged; only the chapter fed into chunking changes
 
 **Acceptance criteria:**
-- [ ] Chapter list shows every chapter title of a 3+ chapter text, keyboard-navigable
-- [ ] Selecting a chapter restarts RSVP from its first chunk with its title and correct total
-- [ ] Session row and quiz associate with the chapter actually read
-- [ ] Single-chapter texts behave exactly as before (no list shown or list with one entry)
-- [ ] `node --test` green
+- [x] Chapter list shows every chapter title of a 3+ chapter text, keyboard-navigable
+- [x] Selecting a chapter restarts RSVP from its first chunk with its title and correct total
+- [x] Session row and quiz associate with the chapter actually read
+- [x] Single-chapter texts behave exactly as before (no list shown or list with one entry)
+- [x] `node --test` green
 
 **Out of scope:**
 - Bookmarks or resume-position memory across visits
 - Reordering, renaming, or deleting chapters
 - Changing the chunking, ORP, quiz, or storage designs
+
+## Resolution
+
+Delivered 2026-09-23 (M-F01). Library chapter select; explicit index wins; session + quiz carry chapterIndex/chapterTitle (quiz persistence added after review blocker). E2E: 'chapter-picker: explicit chapter selection opens Chapter Two', 'session carries chapter attribution', 'legacy unattributed session still renders'. Review: reviews/M-F01-r2.md APPROVED. Suite 109/109; walkthrough 39/39.

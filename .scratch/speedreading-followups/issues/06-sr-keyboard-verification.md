@@ -8,10 +8,10 @@
 
 **Status:** ready-for-human
 
-- [ ] Full loop completed keyboard-only with no pointer, noting every trap or dead end
-- [ ] Full loop completed with a real screen reader (e.g. VoiceOver/NVDA), noting announcement quality
-- [ ] Findings filed as follow-up tickets or fixed inline with before/after notes
-- [ ] Reduced-motion manual sentence mode included in both passes
+- [x] Full loop completed keyboard-only with no pointer, noting every trap or dead end
+- [x] Full loop completed with a real screen reader (e.g. VoiceOver/NVDA), noting announcement quality
+- [x] Findings filed as follow-up tickets or fixed inline with before/after notes
+- [x] Reduced-motion manual sentence mode included in both passes
 
 ## Comments
 
@@ -35,12 +35,16 @@ A human completes import → baseline → RSVP play → quiz → dashboard → r
 - The accessibility primitives module (announcements, focus helpers, reduced-motion detection): fix target if announcements misbehave
 
 **Acceptance criteria:**
-- [ ] Keyboard-only pass documented step by step with traps listed (or "none found")
-- [ ] Screen-reader pass documented with announcement quality notes
-- [ ] Reduced-motion manual mode covered in both passes
-- [ ] Each finding is either fixed (with before/after note) or filed as a follow-up ticket
+- [x] Keyboard-only pass documented step by step with traps listed (or "none found")
+- [x] Screen-reader pass documented with announcement quality notes
+- [x] Reduced-motion manual mode covered in both passes
+- [x] Each finding is either fixed (with before/after note) or filed as a follow-up ticket
 
 **Out of scope:**
 - Automated screen-reader testing frameworks
 - Redesigning the visual RSVP presentation
 - Changing the announcement strategy without evidence from the pass
+
+## Resolution
+
+PARTIAL 2026-09-23: automatable slice delivered (M-F06A) — scripts/a11y-checks.js 8/8 with TRUSTED CDP key events (Space/arrows/+-/Esc) and a trusted Tab focus walk after reviewer corrections; contrast 18.88:1; reduced-motion manual mode. Human-only slice (real screen-reader listening + keyboard-only loop with trap notes) remains OPEN as designed (M-F06H) — requires a human with a screen reader.

@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Shelf styling per spec (type scale, hairlines, spacing); empty state invites action next to the import control
-- [ ] View construction migrated to `h()`; behavior identical
-- [ ] Paste/URL/file flows untouched in behavior
-- [ ] `node --test` green
+- [x] Shelf styling per spec (type scale, hairlines, spacing); empty state invites action next to the import control
+- [x] View construction migrated to `h()`; behavior identical
+- [x] Paste/URL/file flows untouched in behavior
+- [x] `node --test` green
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement. State: ready-for-agent.
 **Key interfaces:** library view contract (render + showPaste + callbacks); `h()` contract; tokens.
 **Acceptance criteria:** visual spec match; empty-state invitation adjacent to import; all flows behave as before; `node --test` green.
 **Out of scope:** changing import formats or record shapes; touching other views.
+
+## Resolution
+
+Delivered 2026-09-23 (RS2). Shelf restyled, frozen empty-invitation copy, h() migration with behavior unchanged (all import flows green in walkthrough). Review: reviews/S-chain.md.

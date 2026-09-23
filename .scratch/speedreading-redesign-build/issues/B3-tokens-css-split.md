@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] `styles/tokens.css` holds `:root` custom properties only; `index.html` links it before `app.css`
-- [ ] `app.css` defines no new custom properties (consumes only)
-- [ ] Visual output byte-identical in the browser (no restyle yet, pure move)
-- [ ] `node --test` green
+- [x] `styles/tokens.css` holds `:root` custom properties only; `index.html` links it before `app.css`
+- [x] `app.css` defines no new custom properties (consumes only)
+- [x] Visual output byte-identical in the browser (no restyle yet, pure move)
+- [x] `node --test` green
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement; single 55-line stylesheet today (verified). Grilled: two li
 **Key interfaces:** the custom-property names (frozen in `design/tokens.md`); no new properties in this ticket.
 **Acceptance criteria:** grep proves `tokens.css` has no selectors beyond `:root`; browser shows zero visual diff; `node --test` green.
 **Out of scope:** any restyle, new tokens, or value changes (surface tickets own those).
+
+## Resolution
+
+Delivered 2026-09-23 (M-RB3). styles/tokens.css (:root only) + app.css consumption; :root-block removed from app.css; focus-color regression caught by review and fixed. Review: reviews/M-RB3-r2.md APPROVED_WITH_NOTES.

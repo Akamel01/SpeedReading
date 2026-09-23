@@ -34,3 +34,7 @@ Evidence: `.autoforge/state.json`, `.autoforge/validation/report.md` (GO, 5/5), 
 | 08 | large-book-perf | enhancement | ready-for-agent |
 | 09 | paste-text-import | enhancement | ready-for-agent |
 | 10 | span-training-mode | enhancement | ready-for-agent |
+
+## Resolution
+
+Run speedreading-002 2026-09-23: F01–F05, F07, F08, F10 delivered + reviewed (agent slices); F06 automatable slice delivered (trusted-input a11y harness), human screen-reader pass remains as designed; F09 closed as superseded. Suite 109/109; walkthrough 39/39 GO; live at https://akamel01.github.io/SpeedReading/.

@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Motion table implemented (180ms calm curve, press 100ms, tick draw-in, status fades; chunk changes motion-free)
-- [ ] Reduced-motion/transparency/contrast fallbacks verified by emulation
-- [ ] <900px single column with horizontal tick strip and sticky transport
-- [ ] `node --test` green
+- [x] Motion table implemented (180ms calm curve, press 100ms, tick draw-in, status fades; chunk changes motion-free)
+- [x] Reduced-motion/transparency/contrast fallbacks verified by emulation
+- [x] <900px single column with horizontal tick strip and sticky transport
+- [x] `node --test` green
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement. State: ready-for-agent.
 **Key interfaces:** token motion values; existing view structure (no structural changes here).
 **Acceptance criteria:** values match spec byte-for-byte; emulation passes for all three signals; mobile layout verified at 390px; `node --test` green.
 **Out of scope:** restyling surfaces (S1–S5 did that); behavior changes.
+
+## Resolution
+
+Delivered 2026-09-23 (RS6). Motion tokens (180ms calm, press 100ms, status 150ms, tick draw-in 240ms with 30ms stagger only for new ticks after review), all three fallback media queries, 390px rail strip + sticky transport verified in walkthrough. Review: reviews/S-chain-r2.md APPROVED.

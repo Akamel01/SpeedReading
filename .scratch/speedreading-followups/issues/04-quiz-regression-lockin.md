@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Test generates a quiz from a fixed real-prose excerpt at a fixed seed and asserts the exact questions
-- [ ] Test asserts no blanked answer is a stopword and every blank has distractors from the same text
-- [ ] Test asserts different seeds change the quiz
-- [ ] `node --test` green
+- [x] Test generates a quiz from a fixed real-prose excerpt at a fixed seed and asserts the exact questions
+- [x] Test asserts no blanked answer is a stopword and every blank has distractors from the same text
+- [x] Test asserts different seeds change the quiz
+- [x] `node --test` green
 
 ## Comments
 
@@ -35,12 +35,16 @@ A committed test generates a quiz from a short fixed public-domain excerpt at a 
 - The stopword set and question shape (sentence with blank marker, answer, accepted list, candidates): invariants asserted, not implementation
 
 **Acceptance criteria:**
-- [ ] Regression test asserts exact questions for the fixed excerpt + seed
-- [ ] Regression test asserts no stopword blanks and same-text distractors
-- [ ] Regression test asserts seed sensitivity
-- [ ] Any intentional generator change updates the fixture deliberately, with the diff reviewed as a quality judgment
-- [ ] `node --test` green
+- [x] Regression test asserts exact questions for the fixed excerpt + seed
+- [x] Regression test asserts no stopword blanks and same-text distractors
+- [x] Regression test asserts seed sensitivity
+- [x] Any intentional generator change updates the fixture deliberately, with the diff reviewed as a quality judgment
+- [x] `node --test` green
 
 **Out of scope:**
 - Improving the generator heuristics (separate change, judged against this fixture)
 - Hand-written question banks
+
+## Resolution
+
+Delivered 2026-09-23 (M-F04). Inline 156-word excerpt; exact-output lock at seed 42; stopword/distractor/seed-sensitivity invariants. Review: reviews/M-F04.md APPROVED_WITH_NOTES.

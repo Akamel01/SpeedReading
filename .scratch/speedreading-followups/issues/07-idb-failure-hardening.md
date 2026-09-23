@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Quota-exceeded write rejects with a readable message and the UI tells the reader what to do
-- [ ] Aborted transactions reject (no hangs, no half-written state); import validates before clearing
-- [ ] Simulated-failure tests cover quota, abort, and malformed import payloads
-- [ ] `node --test` green
+- [x] Quota-exceeded write rejects with a readable message and the UI tells the reader what to do
+- [x] Aborted transactions reject (no hangs, no half-written state); import validates before clearing
+- [x] Simulated-failure tests cover quota, abort, and malformed import payloads
+- [x] `node --test` green
 
 ## Comments
 
@@ -36,12 +36,16 @@ A test harness simulates quota-exceeded writes, aborted transactions, and malfor
 - The zero-dependency test runner for pure logic plus the browser walkthrough harness for browser-only paths
 
 **Acceptance criteria:**
-- [ ] Simulated quota failure: readable rejection, actionable UI message, existing data intact
-- [ ] Simulated abort: promise rejects (never hangs), no partial writes
-- [ ] Malformed import payload: documented error object, existing data intact
-- [ ] `node --test` green; browser evidence recorded
+- [x] Simulated quota failure: readable rejection, actionable UI message, existing data intact
+- [x] Simulated abort: promise rejects (never hangs), no partial writes
+- [x] Malformed import payload: documented error object, existing data intact
+- [x] `node --test` green; browser evidence recorded
 
 **Out of scope:**
 - Cloud backup or sync (contradicts ADR-10)
 - Changing the export schema (see ticket 05)
 - Performance work (see ticket 08)
+
+## Resolution
+
+Delivered 2026-09-23 (M-F07). scripts/idb-failure.js (real store in Chromium): quota rejection readable + data intact + recovery; clone-failure rejection; malformed imports documented errors; UI alert path. 5/5. Review: reviews/M-F07.md APPROVED_WITH_NOTES (commit-time tx branches recorded as known limit).

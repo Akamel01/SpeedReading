@@ -8,10 +8,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] `node --test` green
-- [ ] E2E walkthrough green incl. new visual assertions (tokens applied, rail ticks, lap rows, suggestion dismiss, responsive strip)
-- [ ] Independent review of the wave with no blockers
-- [ ] Pushed to `main`; live site verified
+- [x] `node --test` green
+- [x] E2E walkthrough green incl. new visual assertions (tokens applied, rail ticks, lap rows, suggestion dismiss, responsive strip)
+- [x] Independent review of the wave with no blockers
+- [x] Pushed to `main`; live site verified
 
 ## Comments
 
@@ -29,3 +29,7 @@ Triage: enhancement; final slice of the chain. State: ready-for-agent.
 **Key interfaces:** existing test + walkthrough harnesses, extended not replaced.
 **Acceptance criteria:** suite green; e2e green with new assertions; review verdict APPROVED or APPROVED_WITH_NOTES with notes filed; live URL verified.
 **Out of scope:** new features or further design changes (new tickets).
+
+## Resolution
+
+Delivered 2026-09-23 (RS7). Full suite 109/109; walkthrough 39/39 GO (incl. redesign visual assertions + responsive); S-chain review APPROVED after fixes; pushed main (4328fed) and live URL verified: https://akamel01.github.io/SpeedReading/ 200, tokens.css serving folio/iron.
