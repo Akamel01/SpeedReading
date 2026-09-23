@@ -249,7 +249,7 @@ async function main() {
     record('import: .md ingests with formatting stripped', true);
 
     // 2e. DOCX import (bytes built in Node, delivered as a File)
-    const { buildZip } = await import('../../test/helpers/zip-fixture.js');
+    const { buildZip, buildEpubFixture } = await import('../../test/helpers/zip-fixture.js');
     const docxXml = `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t xml:space="preserve">Docx Title</w:t></w:r></w:p><w:p><w:r><w:t xml:space="preserve">Docx body text for the walkthrough.</w:t></w:r></w:p></w:body></w:document>`;
     const docxBytes = buildZip([
       { name: '[Content_Types].xml', data: '<?xml version="1.0"?><Types/>' },
@@ -258,6 +258,52 @@ async function main() {
     await evaluate(fileInputBytesScript(docxBytes.toString('base64'), 'walk.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
     await waitFor(`[...document.querySelectorAll('#view-library .library-item')].some(li => /walk/i.test(li.textContent))`, 8000, 'docx imported');
     record('import: .docx ingests via in-repo zip reader', true);
+
+    // 2f. Chapter picker: 2-chapter fixture EPUB; choose Chapter Two explicitly.
+    const epubFixture = buildEpubFixture();
+    await evaluate(fileInputBytesScript(epubFixture.toString('base64'), 'chapters.epub', 'application/epub+zip'));
+    await waitFor(`[...document.querySelectorAll('#view-library .library-item')].some(li => /Test Book/.test(li.textContent))`, 8000, 'fixture epub imported');
+    const pickResult = await evaluate(`(() => {
+      const li = [...document.querySelectorAll('#view-library .library-item')].find(x => /Test Book/.test(x.textContent));
+      const select = li.querySelector('.library-chapter');
+      if (!select) return 'NO-SELECT';
+      select.value = '1';
+      li.querySelector('button[data-action="open"]').click();
+      return 'OPENED';
+    })()`);
+    await waitFor(`!document.querySelector('#view-player').hidden`, 8000, 'player open for chosen chapter');
+    const chosenTitle = await evaluate(`document.querySelector('#view-player .player-title').textContent`);
+    record('chapter-picker: explicit chapter selection opens Chapter Two', /Chapter Two/i.test(chosenTitle), `${pickResult} header="${chosenTitle}"`);
+    // Fast-play to the end, then leave the (empty) quiz for the dashboard.
+    await waitFor(`document.querySelector('.player-btn-play').textContent.trim() === 'Pause'`, 4000, 'autoplay');
+    await evaluate(`document.querySelector('.player-btn-play').click()`);
+    await waitFor(`document.querySelector('.player-btn-play').textContent.trim() === 'Play'`, 3000, 'paused');
+    for (let i = 0; i < 24; i++) {
+      await evaluate(`document.querySelector('.player-btn-faster').click()`);
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    await evaluate(`document.querySelector('.player-btn-play').click()`);
+    await waitFor(`!document.querySelector('#view-quiz').hidden`, 20000, 'session end routed to quiz');
+    await evaluate(`document.querySelector('#view-quiz .quiz-actions button[type="button"]').click()`);
+    await waitFor(`!document.querySelector('#view-dashboard').hidden`, 8000, 'dashboard after chapter session');
+    const attribution = await evaluate(`(async () => {
+      const store = await (await import('/src/lib/store.js')).openStore();
+      const all = await store.getAll('sessions');
+      const last = all.sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0)).pop();
+      return { chapterIndex: last.chapterIndex, chapterTitle: last.chapterTitle, kind: last.kind };
+    })()`);
+    record('chapter-picker: session carries chapter attribution',
+      attribution.chapterIndex === 1 && /Chapter Two/i.test(attribution.chapterTitle ?? ''),
+      JSON.stringify(attribution));
+    // Legacy record without chapter fields must still render (never filtered).
+    await evaluate(`(async () => {
+      const store = await (await import('/src/lib/store.js')).openStore();
+      await store.put('sessions', { id: 'legacy-1', kind: 'read', textId: 'legacy', chunkSize: 2, targetWpm: 300, startedAt: 1, endedAt: 2, wordCount: 10, elapsedMs: 1000, wpm: 600, quizId: null, correct: null, total: null, comprehensionPct: null });
+      return true;
+    })()`);
+    await evaluate(`[...document.querySelectorAll('header nav button')].find(b => b.textContent.trim() === 'Dashboard').click()`);
+    await waitFor(`document.querySelectorAll('#view-dashboard .dashboard-table tr').length >= 3`, 8000, 'legacy row rendered');
+    record('chapter-picker: legacy unattributed session still renders (never filtered)', true);
 
     // 2f. PDF import (minimal fixture built in Node, delivered as a File)
     const { buildMinimalPdf } = await import('../../test/helpers/pdf-fixture.js');
@@ -274,12 +320,24 @@ async function main() {
       15000, 'url fallback message').then(() => true);
     record('import: unreachable/CORS URL falls back to paste with a readable message', fallbackShown);
 
-    // 3. Open the calibration text explicitly (IDB getAll order is by random UUID key)
+    // 3. Enable the preview drill, then open the calibration text explicitly
+    // (IDB getAll order is by random UUID key).
+    await evaluate(`
+      (() => {
+        const drill = document.querySelector('.player-setting-drill');
+        const preview = document.querySelector('.player-setting-preview');
+        drill.value = 'on'; drill.dispatchEvent(new Event('change', { bubbles: true }));
+        preview.value = '2'; preview.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      })()`);
+    await new Promise((r) => setTimeout(r, 400));
     await evaluate(`
       [...document.querySelectorAll('#view-library .library-item')]
         .find(li => /calibration/i.test(li.textContent))
         .querySelector('button[data-action="open"]').click()`);
     await waitFor(`!document.querySelector('#view-player').hidden`, 8000, 'player view visible');
+    await waitFor(`[...document.querySelectorAll('#view-library,#view-player,#view-quiz,#view-dashboard')].filter(s=>!s.hidden).length === 1`, 4000, 'exactly one visible section')
+      .catch(() => {});
     record('open: player view becomes the single visible section',
       await evaluate(`[...document.querySelectorAll('#view-library,#view-player,#view-quiz,#view-dashboard')].filter(s=>!s.hidden).length === 1`));
 
@@ -300,6 +358,23 @@ async function main() {
     record('a11y: live region announced a sentence boundary', announced,
       (await evaluate(`document.querySelector('#live-region').textContent.trim()`)).slice(0, 60));
 
+    // 4b. Span drill: preview zone + recognition check (ADR-18; framing only, no speed claims).
+    const previewSeen = await waitFor(`document.querySelector('.rsvp-preview') !== null`, 6000, 'preview zone renders');
+    const previewText = await evaluate(`document.querySelector('.rsvp-preview')?.textContent?.trim() ?? ''`);
+    record('span-drill: preview zone renders upcoming words beside the anchor', previewSeen, `preview="${previewText}"`);
+    await waitFor(`!document.querySelector('.player-recognition').hidden`, 8000, 'recognition check appears at boundary');
+    const recognitionPromptText = await evaluate(`document.querySelector('.player-recognition-prompt').textContent`);
+    await evaluate(`(() => {
+      const input = document.querySelector('.player-recognition-input');
+      input.value = 'zzz';
+      document.querySelector('.player-recognition form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      return true;
+    })()`);
+    const recognitionScoreText = await evaluate(`document.querySelector('.player-recognition-score').textContent`);
+    record('span-drill: recognition check scores the answer',
+      /recognition 0\/1/.test(recognitionScoreText),
+      `${recognitionPromptText.slice(0, 60)} → ${recognitionScoreText}`);
+
     // 5. Visibility pause: fake hidden, dispatch visibilitychange, expect Play label back
     await evaluate(`
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
@@ -313,6 +388,16 @@ async function main() {
     await waitFor(`!document.querySelector('#view-quiz').hidden`, 20000, 'quiz view after end');
     const quizCount = await evaluate(`document.querySelectorAll('#view-quiz .quiz-item').length`);
     record('session: completion routes to quiz', quizCount >= 1, `${quizCount} questions`);
+    // Drill counts are captured at session end, before any quiz save can overwrite them.
+    const drillAtEnd = await evaluate(`(async () => {
+      const store = await (await import('/src/lib/store.js')).openStore();
+      const all = await store.getAll('sessions');
+      const last = all.sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0)).pop();
+      return { drill: last.drill, correct: last.correct, total: last.total };
+    })()`);
+    record('span-drill: recognition counts persisted at session end (one submitted answer)',
+      drillAtEnd.drill === 'span' && drillAtEnd.total === 1 && drillAtEnd.correct === 0,
+      JSON.stringify(drillAtEnd));
     const inputsEmpty = await evaluate(`[...document.querySelectorAll('#view-quiz .quiz-answer')].every(i => i.value === '')`);
     record('quiz: answers are the reader\'s own (inputs empty, no prefill)', inputsEmpty);
     // Submit deliberately wrong answers: real scoring must yield 0%, not a trivially perfect score.
@@ -324,6 +409,30 @@ async function main() {
     const summaryText = await evaluate(`document.querySelector('#view-dashboard .dashboard-summary').textContent`);
     record('dashboard: summary shows wpm + comprehension trend', /comprehension/i.test(summaryText), summaryText.slice(0, 90));
     record('quiz: wrong answers score 0% (scoring is real, not prefill-based)', /comprehension 0%/.test(summaryText));
+    const drillAfterQuiz = await evaluate(`(async () => {
+      const store = await (await import('/src/lib/store.js')).openStore();
+      const sessions = await store.getAll('sessions');
+      const last = sessions.sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0)).pop();
+      const quizzes = await store.getAll('quizzes');
+      const quiz = quizzes.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).pop();
+      return { drill: last.drill, correct: last.correct, total: last.total, quizScore: quiz?.score ?? null };
+    })()`);
+    record('span-drill: quiz save preserves recognition counts and stores the quiz score separately',
+      drillAfterQuiz.drill === 'span' && drillAfterQuiz.total === 1 && drillAfterQuiz.quizScore?.total === 5,
+      JSON.stringify(drillAfterQuiz));
+    // Turn the drill off so later flows stay plain reads.
+    await evaluate(`(() => {
+      const drill = document.querySelector('.player-setting-drill');
+      drill.value = 'off'; drill.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`);
+    const quizRecord = await evaluate(`(async () => {
+      const store = await (await import('/src/lib/store.js')).openStore();
+      const all = await store.getAll('quizzes');
+      const last = all.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).pop();
+      return { chapterIndex: last?.chapterIndex, textId: typeof last?.textId };
+    })()`);
+    record('quiz: persisted record carries chapterIndex (ADR-11)', quizRecord.chapterIndex === 0 && quizRecord.textId === 'string', JSON.stringify(quizRecord));
 
     // 7. Persistence after reload
     const requestsBeforeReload = networkRequests.length;
@@ -360,6 +469,26 @@ async function main() {
         return Math.round(ratio * 100) / 100;
       })()`);
     record('a11y: body text contrast >= 4.5:1', contrast >= 4.5, `ratio=${contrast}`);
+
+    // 9b. Redesign visual assertions (S1 materials, S3 rail, S5 laps, S6 responsive/motion tokens)
+    const bodyBg = await evaluate(`getComputedStyle(document.body).backgroundColor`);
+    record('redesign: body uses the folio token', bodyBg === 'rgb(246, 244, 236)', bodyBg);
+    const headerBlur = await evaluate(`getComputedStyle(document.querySelector('header')).backdropFilter`);
+    record('redesign: header material uses backdrop blur', /blur/.test(headerBlur), headerBlur);
+    const railTicks = await evaluate(`document.querySelectorAll('.player-rail .rail-tick').length`);
+    record('redesign: margin rail renders one tick per session', railTicks >= 1, `ticks=${railTicks}`);
+    await evaluate(`[...document.querySelectorAll('header nav button')].find(b => b.textContent.trim() === 'Dashboard').click()`);
+    await waitFor(`!document.querySelector('#view-dashboard').hidden`, 5000, 'dashboard for lap assert');
+    const lapLabel = await evaluate(`document.querySelector('#view-dashboard .dashboard-lap')?.textContent ?? ''`);
+    record('redesign: log rows read as laps with paired delta', /Lap \d/.test(lapLabel) && /best|$/.test(lapLabel), lapLabel.trim());
+    const deltaCell = await evaluate(`document.querySelector('#view-dashboard .dashboard-delta-up, #view-dashboard .dashboard-delta-down')?.textContent ?? ''`);
+    record('redesign: delta column rendered beside comprehension', deltaCell.length >= 1, `delta="${deltaCell}"`);
+    await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }, session);
+    await new Promise((r) => setTimeout(r, 400));
+    const stripDirection = await evaluate(`getComputedStyle(document.querySelector('.player-rail')).flexDirection`);
+    const stickyControls = await evaluate(`getComputedStyle(document.querySelector('.player-controls')).position`);
+    record('redesign: responsive rail strip + sticky transport at 390px', stripDirection === 'row' && stickyControls === 'sticky', `${stripDirection}/${stickyControls}`);
+    await send('Emulation.clearDeviceMetricsOverride', {}, session);
 
     // 10. Network: only same-origin static assets plus the single explicit user-triggered URL-import
     // fetch — zero telemetry or background requests

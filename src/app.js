@@ -7,7 +7,7 @@ import { extractArticle } from './lib/article.js';
 import { tokenize, chunk } from './lib/text.js';
 import { createPlayer, nextDelay } from './lib/player.js';
 import { generateQuiz, scoreQuiz } from './lib/quiz.js';
-import { suggestNextWpm } from './lib/metrics.js';
+import { suggestNextWpm, activeMs, sessionTicks } from './lib/metrics.js';
 import { createLibraryView } from './ui/library.js';
 import { createPlayerView } from './ui/player-view.js';
 import { createQuizView } from './ui/quiz-view.js';
@@ -20,6 +20,8 @@ const DEFAULT_SETTINGS = {
   chunkSize: 2,
   orpEnabled: true,
   reducedMotion: 'auto',
+  drill: false,
+  previewWords: 2,
   fontScale: 1,
   textAlign: 'center',
   adaptiveSuggestions: true,
@@ -36,6 +38,10 @@ function show(name) {
   for (const [key, section] of Object.entries(sections)) {
     if (section) section.hidden = key !== name;
   }
+  document.querySelectorAll('header nav button').forEach((button) => {
+    const target = button.textContent.trim().toLowerCase();
+    button.setAttribute('aria-current', target === name ? 'true' : 'false');
+  });
   focusMain();
 }
 
@@ -48,6 +54,7 @@ async function boot() {
 
   let currentText = null;
   let currentChapter = null;
+  let currentChapterIndex = 0;
   let currentPlayer = null;
   let currentChunks = [];
   let currentSession = null;
@@ -55,9 +62,8 @@ async function boot() {
   let sessionOpen = false;
   let quizActive = false;
   let startedAt = 0;
-  // Active reading time: sum of chunk-to-chunk gaps, capped to exclude pauses/hidden time.
-  let activeMs = 0;
-  let lastEmitAt = null;
+  // Collect per-chunk emission events to compute active time via metrics.activeMs
+  let readEvents = [];
 
   async function persistSettings() {
     await store.put('settings', settings);
@@ -79,7 +85,7 @@ async function boot() {
     return texts.sort((a, b) => (b.importedAt ?? 0) - (a.importedAt ?? 0));
   }
 
-  async function openText(id) {
+  async function openText(id, chapterIndex = null) {
     const texts = await store.getAll('texts');
     const text = texts.find((t) => t.id === id);
     if (!text || !text.chapters.length) {
@@ -88,31 +94,31 @@ async function boot() {
       return;
     }
     currentText = text;
-    // Skip near-empty leading sections (e.g. EPUB cover pages) when a substantial chapter exists.
-    currentChapter = text.chapters.find((c) => (c.wordCount ?? 0) >= 50) ?? text.chapters[0];
+    // Explicit chapter choice wins; otherwise skip near-empty leading sections
+    // (e.g. EPUB cover pages) when a substantial chapter exists.
+    const requested = Number.isInteger(chapterIndex) && text.chapters[chapterIndex] ? text.chapters[chapterIndex] : null;
+    currentChapter = requested ?? text.chapters.find((c) => (c.wordCount ?? 0) >= 50) ?? text.chapters[0];
+    currentChapterIndex = text.chapters.indexOf(currentChapter);
     sessionOpen = true;
     currentChunkSize = settings.chunkSize;
     currentChunks = chunk(tokenize(currentChapter.text), { size: settings.chunkSize });
     currentPlayer = createPlayer({ chunks: currentChunks, wpm: settings.wpm });
     startedAt = Date.now();
-    activeMs = 0;
-    lastEmitAt = null;
+    readEvents = [];
     currentPlayer.on('chunk', ({ chunk: shown }) => {
       const at = performance.now();
-      if (lastEmitAt !== null) {
-        const expected = nextDelay(shown, settings.wpm);
-        activeMs += Math.min(at - lastEmitAt, expected * 4 + 250);
-      }
-      lastEmitAt = at;
+      const expected = nextDelay(shown, settings.wpm);
+      readEvents.push({ at, expectedMs: expected });
     });
     playerView.start({
       player: currentPlayer,
       text: { title: `${text.title} — ${currentChapter.title}`, text: currentChapter.text },
     });
+    playerView.renderRail(sessionTicks(await store.getAll('sessions')));
     show('player');
   }
 
-  async function recordSession(endedAt) {
+  async function recordSession({ endedAt, drill, recognition } = {}) {
     // Idempotent: end may fire once per player run; guard duplicate records.
     if (!currentPlayer || !currentText || !sessionOpen) return;
     sessionOpen = false;
@@ -121,7 +127,8 @@ async function boot() {
     const wordCount = currentChunks.slice(0, shown).reduce((sum, c) => sum + c.words.length, 0);
     // Prefer pause-excluded active time; fall back to wall clock if no chunks were emitted.
     const wallMs = endedAt - startedAt;
-    const elapsedMs = Math.max(1, activeMs > 0 ? Math.round(activeMs) : wallMs);
+    const active = activeMs(readEvents);
+    const elapsedMs = Math.max(1, active > 0 ? Math.round(active) : wallMs);
     const wpm = Math.round(wordCount / (elapsedMs / 60000));
     const priorSessions = await store.getAll('sessions');
     const kind = priorSessions.some((s) => s.textId === currentText.id) ? 'read' : 'baseline';
@@ -129,6 +136,8 @@ async function boot() {
       id: crypto.randomUUID(),
       kind,
       textId: currentText.id,
+      chapterIndex: currentChapterIndex,
+      chapterTitle: currentChapter.title,
       chunkSize: currentChunkSize,
       targetWpm: settings.wpm,
       startedAt,
@@ -137,17 +146,20 @@ async function boot() {
       elapsedMs,
       wpm,
       quizId: null,
-      correct: null,
-      total: null,
+      correct: recognition ? recognition.correct : null,
+      total: recognition ? recognition.total : null,
       comprehensionPct: null,
+      drill: drill ?? undefined,
     };
     await store.put('sessions', currentSession);
+    playerView.renderRail(sessionTicks(await store.getAll('sessions')));
     quizActive = true;
     const seed = Date.now() % 100000;
     const questions = generateQuiz(currentChapter.text, { n: 5, seed });
     quizView.start({
       id: crypto.randomUUID(),
       textId: currentText.id,
+      chapterIndex: currentChapterIndex,
       createdAt: Date.now(),
       seed,
       questions,
@@ -251,8 +263,8 @@ async function boot() {
   });
 
   const playerView = createPlayerView(sections.player, {
-    onSessionEnd: ({ endedAt }) => {
-      recordSession(endedAt).catch((error) => {
+    onSessionEnd: (payload) => {
+      recordSession(payload).catch((error) => {
         console.error(error);
         alert(`Could not save your session: ${error.message}`);
       });
@@ -278,18 +290,25 @@ async function boot() {
       await store.put('quizzes', {
         id: editedQuiz.id,
         textId: editedQuiz.textId,
+        chapterIndex: editedQuiz.chapterIndex ?? null,
         createdAt: editedQuiz.createdAt,
         seed: editedQuiz.seed,
         questions: editedQuiz.questions,
         edited: editedQuiz.edited === true,
+        score: { correct: result.correct, total: result.total, pct: result.pct },
       });
       if (currentSession) {
+        // Drill sessions keep their recognition counts in correct/total; their
+        // quiz score lives on the quiz record's `score` field instead.
+        const isDrill = currentSession.drill === 'span';
         currentSession = {
           ...currentSession,
           quizId: editedQuiz.id,
-          correct: result.correct,
-          total: result.total,
-          comprehensionPct: result.pct,
+          ...(isDrill ? {} : {
+            correct: result.correct,
+            total: result.total,
+            comprehensionPct: result.pct,
+          }),
         };
         await store.put('sessions', currentSession);
       }

@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Quiz Authoring Harness</title>
+    <style>
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <section id="view-quiz"></section>
+    <section id="authoring-root"></section>
+    <script type="module">
+      import { createQuizView } from '../../src/ui/quiz-view.js';
+
+      const sampleQuiz = {
+        id: 'sample-quiz-2',
+        textId: 't1',
+        seed: 7,
+        questions: [
+          { id: 'q1', kind: 'cloze', sentence: 'The quick brown ____ jumps over the lazy dog', answer: 'fox', accepted: ['fox', 'feline'], candidates: ['fox', 'dog'] },
+          { id: 'q2', kind: 'cloze', sentence: '2 + 2 = ____', answer: '4', accepted: ['4', 'four'], candidates: ['3', '4'] },
+        ],
+      };
+
+      window.__results = {};
+      const authoringRoot = document.getElementById('authoring-root');
+      const answeringRoot = document.getElementById('view-quiz');
+
+      const authoringView = createQuizView(authoringRoot, {
+        onSave: (payload) => { window.__results.authoringSave = payload; },
+        onCancel: () => {},
+      });
+      authoringView.startAuthoring(sampleQuiz);
+
+      const answeringView = createQuizView(answeringRoot, {
+        onSave: (payload) => { window.__results.answeringSave = payload; },
+        onCancel: () => {},
+      });
+      answeringView.start(sampleQuiz);
+
+      window.__results.prefilled = [...authoringRoot.querySelectorAll('.authoring-answer')].map((i) => i.value);
+      window.__results.authoringAccepted = [...authoringRoot.querySelectorAll('.authoring-accepted')].map((i) => i.value);
+      window.__results.answeringValues = [...answeringRoot.querySelectorAll('input.quiz-answer')].map((i) => i.value);
+      window.__results.answeringDomHasExpected = ['fox', 'feline', '4', 'four'].some((word) =>
+        answeringRoot.textContent.includes(word));
+
+      // Edit then save through the real form submit path.
+      authoringRoot.querySelectorAll('.authoring-answer')[0].value = 'sly fox';
+      authoringRoot.querySelectorAll('.authoring-accepted')[0].value = 'sly fox, fox';
+      authoringRoot.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      window.__results.done = true;
+    </script>
+  </body>
+  </html>

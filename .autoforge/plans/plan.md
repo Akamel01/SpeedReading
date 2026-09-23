@@ -1,318 +1,208 @@
-# Plan — SpeedReading Trainer (greenfield MVP)
+# Plan — run speedreading-002 "close all tickets" (v2.1, critic fixes incorporated)
 
-## 0. Scope authority
+Scope: `/Users/akamel/Documents/SpeedReading`. Authority: `.autoforge/discovery/tracker-index.md` (19 frontier entries),
+`.autoforge/architecture/decisions.md` ADR-11..20 (§7), interface freezes (§8), data-model deltas (§9), ownership map (§10), traceability (§11).
+Fallback (NOT planned, resolved): deploy-imports 01–07 resolved 2026-09-23 (Resolution sections, `.scratch/speedreading-deploy-imports/map.md`);
+redesign 01–11 resolved (`.scratch/speedreading-redesign/map.md`); followups-09 paste-text-import superseded by deploy-imports/03
+(note in `.scratch/speedreading-followups/issues/09-paste-text-import.md` Comments). No module for these.
 
-`discovery/tracker-index.md` has **zero ticket entries** (no Wayfinder map, no GitHub repo, no handoff docs). Its Scope Fallback clause makes the stated objective the sole scope authority: build an in-browser trainer that presents books/texts as 1–3 word chunks (RSVP) to train reading + comprehension speed. Therefore modules below are enumerated from `architecture/decisions.md` §6 MVP file list only. No item outside §6 is planned; the non-goals in `grilling.md:37-38` (accounts, cloud sync, DRM handling, PDF, LLM quizzes, mobile app) are excluded.
+Critic review `.autoforge/reviews/plan-002.md` verdict CHANGES_REQUIRED → all 9 findings incorporated here (real filenames,
+harness-based acceptance for DOM modules, no shared-file parallel groups, true blocked_by edges, frozen design paths,
+runnable harness commands, RS7 gate semantics). Auto-approved: everything resolvable from evidence, no §16 gate.
 
-Budget context: planner ran on a 64k-window conservative model; artifacts are contract-grade and terse.
+## Modules (20 modules / 19 tickets; F06 split per ADR-16)
 
-## 1. Interface freeze (authoritative for all parallel workers)
+### M-F01 chapter-picker (F01, ADR-11)
+- Objective: chapter select in `app.js` (`currentChapter`), sessions += `chapterIndex,chapterTitle`, quizzes += `chapterIndex`, chapter-scoped generation, `textId` stays grouping key, missing fields render "unknown".
+- Inputs: followups `01-chapter-picker.md`, decisions.md §8–§9.
+- Outputs: `src/app.js`, `src/ui/library.js` (list control only).
+- touches: [`src/app.js`, `src/ui/library.js`]
+- blocked_by: [M-F03] (shared `src/app.js` serialization; tracker says none)
+- Acceptance: walkthrough step (CDP): multi-chapter fixture EPUB import → open chapter 2 → play → quiz → exported session carries chapterIndex 1 + chapterTitle; legacy unattributed record renders "unknown". No node test (DOM-bound, ADR-6).
+- Skills: [`tdd`]. Reviewer: agent.
 
-Signatures are copied verbatim from `decisions.md` §3. Do not change; a worker that needs a change stops and reports.
+### M-F02 quiz-authoring (F02, ADR-12)
+- Objective: `renderAuthoring` beside `renderAnswering` in quiz-view; authoring edits `answer`/`accepted`, sets `edited:true`; answering writes only `userAnswer`; `scoreQuiz` unchanged.
+- Inputs: `02-quiz-authoring-mode.md`, §8 freeze.
+- Outputs: `src/ui/quiz-view.js`, `test/harness/quiz-authoring.html`.
+- touches: [`src/ui/quiz-view.js`, `test/harness/quiz-authoring.html`]
+- blocked_by: []
+- Acceptance: harness page in headless Chromium (authoring persists edited:true; answering DOM has no expected strings) + grep `renderAnswering` free of `q.answer`/`q.accepted` + `node --test test/quiz.test.js` green (scoring unchanged).
+- Skills: [`tdd`]. Reviewer: agent (answering path must not reference expected strings).
 
-```js
-// src/lib/text.js
-/** @typedef {{word:string, trail:string}} Token */
-tokenize(text) -> Token[]
-chunk(tokens, {size=2, longWordChars=14}) -> Chunk[]   // Chunk = {words:Token[], text:string}
-// breaks: paragraph end, sentence-final punctuation, word.length > longWordChars
+### M-F03 wpm-active-time (F03, ADR-13)
+- Objective: pure `activeMs(events)->ms` in metrics.js (per-gap `min(gap, expectedMs*4+250)`); `app.js` collects events per `chunk` emission via `nextDelay`, calls at session end.
+- Inputs: `03-wpm-active-time-unit.md`, §8 `activeMs` freeze.
+- Outputs: `src/lib/metrics.js`, `test/metrics.test.js`, `src/app.js` (call-site only).
+- touches: [`src/lib/metrics.js`, `test/metrics.test.js`, `src/app.js`]
+- blocked_by: [M-RB1] (shared `src/lib/metrics.js` + test file; RB1 lands `sessionTicks` first, F03 appends — append-only, no rewrites)
+- Acceptance: `node --test test/metrics.test.js` (equivalence uninterrupted ≡ Σ expected ± rounding; pause/hidden/WPM-change/empty/single cases).
+- Skills: [`tdd`]. Reviewer: agent.
 
-// src/lib/orp.js
-orpIndex(word) -> number           // 1-char:0; 2-5:1; 6-9:2; 10-13:3; 14+:4 (clamped to length-1)
-orpParts(word) -> {left:string, orp:string, right:string}
+### M-F04 quiz-regression (F04, ADR-14)
+- Objective: inline public-domain excerpt 150–250w in test, fixed seed, exact-output + stopword/distractor/seed-sensitivity asserts. No app code.
+- Inputs: `04-quiz-regression-lockin.md`.
+- Outputs: `test/quiz-regression.test.js`.
+- touches: [`test/quiz-regression.test.js`]
+- blocked_by: []
+- Acceptance: `node --test test/quiz-regression.test.js`.
+- Skills: [`tdd`]. Reviewer: agent.
 
-// src/lib/player.js
-createPlayer({chunks, wpm, now=performance.now, schedule=requestAnimationFrame})
-  -> {play, pause, toggle, seek(i), step(+1|-1), setWpm(n), getState, on(event, cb)}
-// events: 'chunk'{index, chunk, orpParts}, 'end', 'state'{playing, index, wpm}
-// visibility pause: engine exposes pause(); app.js owns the document 'visibilitychange'
-// listener and calls player.pause() — the engine never touches document (critic fix #1).
-nextDelay(chunk, wpm) -> ms        // pure: chunk.words.length * 60000 / wpm — a 2-word chunk at 300 wpm displays 400ms, so measured WPM stays accurate (orchestrator fix; supersedes the flat 60000/wpm)
+### M-F05 export-import-e2e (F05, ADR-15)
+- Objective: browser-harness round-trip export→wipe→import (confirm-accept/dismiss, wrong-schema negative). Schema-mismatch owned here only; quota/abort excluded (F07). No app/schema change.
+- Inputs: `05-export-import-e2e.md`.
+- Outputs: `test/harness/export-import.js` (standalone CDP script, run explicitly), walkthrough extension in `.autoforge/validation/e2e-walkthrough.mjs` (owned by this module only in G0).
+- touches: [`test/harness/export-import.js`, `.autoforge/validation/e2e-walkthrough.mjs`]
+- blocked_by: []
+- Acceptance: standalone script passes headless-Chromium run (round-trip intact, dismiss loses nothing, wrong-schema rejected with data intact) + extended walkthrough green.
+- Skills: []. Reviewer: agent.
 
-// src/lib/pipeline.js
-normalizeTxt(raw) -> string
-chapterize(text) -> Chapter[]
-ingest({name, arrayBuffer}) -> Promise<{title, source:'txt'|'epub', chapters:Chapter[]}>
+### M-F06A sr-keyboard-automation (F06 automatable slice, ADR-16)
+- Objective: scripted key-event walk + focus/announce-attribute asserts + contrast check. Claims attributes only, never announcement quality.
+- Inputs: `06-sr-keyboard-verification.md`.
+- Outputs: `test/harness/a11y-checks.js` (standalone CDP script, run explicitly).
+- touches: [`test/harness/a11y-checks.js`]
+- blocked_by: []
+- Acceptance: standalone run passes (Space/arrows/+/- drive player, focus visible on all controls, `role=status` sentence-boundary only, `aria-live=polite` in SR mode, computed contrast ≥4.5:1).
+- Skills: [`accessibility`]. Reviewer: agent.
 
-// src/lib/zip.js
-readZip(arrayBuffer) -> Promise<Map<string, Uint8Array>>
-// src/lib/epub.js
-epubToChapters(arrayBuffer) -> Promise<{title, chapters:Chapter[]}>
+### M-F06H sr-human-gate (F06 human slice, ADR-16)
+- Objective: real screen-reader listening + keyboard-only full loop by a human. No agent implementation.
+- Inputs: ticket F06, `test/harness/a11y-checks.js` (context only).
+- Outputs: `docs/sr-pass-note.md` (human pass record).
+- touches: [`docs/sr-pass-note.md`]
+- blocked_by: [M-F06A]
+- Acceptance: documented human pass (SR name+version, trap notes, verdict). `human_gate: true`. Tracked separately; does NOT block release.
+- Skills: []. Reviewer: human (required).
 
-// src/lib/quiz.js
-generateQuiz(text, {n=5, seed, minSentenceWords=8, maxSentenceWords=40})
-  -> Question[]   // {id, kind:'cloze', sentence, answer, accepted:string[], candidates:string[]}
-scoreQuiz(questions, answers) -> {correct, total, pct, perQuestion:boolean[]}
-normalizeAnswer(s) -> string
+### M-F07 idb-failure-hardening (F07, ADR-15)
+- Objective: simulated quota/abort/malformed-payload failure units vs store contract + recovery via existing alerts. No new dialogs, no schema change.
+- Inputs: `07-idb-failure-hardening.md`.
+- Outputs: `test/harness/idb-failure.js` (standalone CDP script, run explicitly).
+- touches: [`test/harness/idb-failure.js`]
+- blocked_by: []
+- Acceptance: standalone run passes (each fault leaves prior data intact, alert shown, recovery copy offered).
+- Skills: []. Reviewer: agent.
 
-// src/lib/metrics.js
-wpm(wordCount, elapsedMs) -> number
-comprehensionPct(correct, total) -> number
-summarize(sessions) -> {sessions:n, bestWpm, avgWpm, avgComprehension, trend:'up'|'flat'|'down'}
-suggestNextWpm(lastWpm, lastComprehensionPct) -> number   // >=80 -> +10%, <60 -> -10%, else hold
+### M-F08 large-book-perf (F08, ADR-17)
+- Objective: MEASURE FIRST. Standalone node script + in-browser import timing; budgets Node <2s, browser import <3s responsive first paint, chunk-array heap <100MB; verdict recorded in-ticket. Code change ONLY on measured miss.
+- Inputs: `08-large-book-perf.md`.
+- Outputs: `scripts/perf-large-book.js`, in-ticket verdict note.
+- touches: [`scripts/perf-large-book.js`]
+- blocked_by: []
+- Acceptance: `node scripts/perf-large-book.js` prints timings+heap+PASS/FAIL vs budgets; on PASS zero app diff (`git status --porcelain src/ styles/` empty). `fix_only_on_miss: true`.
+- Skills: []. Reviewer: agent.
 
-// src/lib/store.js  (all async)
-openStore() -> Promise<Store>
-Store: {put(store, rec), get(store, id), getAll(store), del(store, id), exportAll(), importAll(json)}
-// DB 'speedread' v1; stores texts, quizzes, sessions, settings (keyPath:'id'); export {schemaVersion:1,...}
+### M-F10 span-training (F10, ADR-18)
+- Objective: drill mode inside player-view reusing chunk/ORP/engine; variable preview width, fixed anchor; recognition checks reuse scoring; sessions carry optional `drill:'span'` (producer in app.js); dashboard/summarize unchanged; copy guardrail grep.
+- Inputs: `10-span-training-mode.md`, §8–§9.
+- Outputs: `src/ui/player-view.js`, `src/app.js` (drill flag).
+- touches: [`src/ui/player-view.js`, `src/app.js`]
+- blocked_by: [M-F01] (shared `src/app.js` guard)
+- Acceptance: walkthrough drill steps (variable-width preview at fixed anchor, recognition check scores, drill flag visible) + grep `faster|boost|double|improve your speed` over `src/ui/player-view.js` exits nonzero. No node test (DOM-bound, ADR-6).
+- Skills: [`tdd`]. Reviewer: agent.
 
-// src/ui/a11y.js
-prefersReducedMotion() -> boolean
-announce(message, {politeness='polite'}) -> void
-focusMain() -> void
-```
+### M-RB1 lib-sentence-ticks (RB1, ADR-19)
+- Objective: `splitSentences` in `src/lib/text.js` (abbreviation-aware, `''->[]`) + `sessionTicks` in metrics (`best`=argmax wpm, ties first) + tests. Exact §8 signatures.
+- Inputs: `redesign-build/issues/B1-lib-sentence-ticks.md`, §8.
+- Outputs: `src/lib/text.js`, `src/lib/metrics.js`, `test/text.test.js`, `test/metrics.test.js`.
+- touches: [`src/lib/text.js`, `src/lib/metrics.js`, `test/text.test.js`, `test/metrics.test.js`]
+- blocked_by: []
+- Acceptance: `node --test test/text.test.js test/metrics.test.js`.
+- Skills: [`tdd`]. Reviewer: agent.
 
-### 1a. Planner-frozen UI contracts (not in §3; frozen here so views can be built in parallel)
+### M-RB2 dom-helper-h (RB2, ADR-19)
+- Objective: `h(tag,attrs,...children)` in `src/ui/h.js` + structural harness. Zero view edits.
+- Inputs: `issues/B2-dom-helper-h.md`, §8.
+- Outputs: `src/ui/h.js`, `test/harness/h.html`.
+- touches: [`src/ui/h.js`, `test/harness/h.html`]
+- blocked_by: []
+- Acceptance: `node --check src/ui/h.js` + harness page structural assertions pass in headless Chromium (nesting, attrs, listeners). No node --test (needs document, ADR-6).
+- Skills: [`tdd`]. Reviewer: agent.
 
-Views are render + event wiring only; `app.js` owns the store and player instances (report.md §3: `app -> ui + lib`).
+### M-RB3 tokens-css-split (RB3, ADR-19)
+- Objective: `styles/tokens.css` (`:root` only, values ex `.scratch/speedreading-redesign/design/tokens.md`) + `index.html` link order. Zero visual change.
+- Inputs: `issues/B3-tokens-css-split.md`, `.scratch/speedreading-redesign/design/tokens.md`.
+- Outputs: `styles/tokens.css`, `index.html`.
+- touches: [`styles/tokens.css`, `index.html`]
+- blocked_by: []
+- Acceptance: grep `:root` outside `styles/tokens.css` exits nonzero for new custom props; page renders pixel-same (walkthrough visual check).
+- Skills: []. Reviewer: agent.
 
-```js
-createLibraryView(root, {onImportFile(file), onOpenText(id), onDeleteText(id), onExport(), onImportJson(json)})
-  -> {render(texts)}
-createPlayerView(root, {onSessionEnd(session), onExit(), onSettingsChange(partial)})
-  -> {start({player, text}), showSrText(text), hide(), renderSettings(settings)}
-createQuizView(root, {onSave(quiz), onCancel()})
-  -> {start(quiz)}
-createDashboard(root, {onStartSession(textId), onExport(), onImportJson(json), onAcceptWpm(n)})
-  -> {render({sessions, suggestion})}
-```
+### M-RS1 header-nav (RS1, ADR-19)
+- Objective: header/nav material per pass-3 spec (`.scratch/speedreading-redesign/design/pass-3-*.md`) + active nav state in app routing; owns `app.css` header/nav section only. No phantom views (critic: header-view/app-shell deleted).
+- Inputs: `issues/S1-header-nav-material.md`, RB3 tokens, frozen pass-3 artifacts.
+- Outputs: `styles/app.css` (S1 section), `src/app.js` (aria-current routing touch).
+- touches: [`styles/app.css`, `src/app.js`]
+- blocked_by: [M-RB3, M-F10] (tokens + app.js last writer F10 landed first)
+- Acceptance: walkthrough step (header/nav matches spec, tokens only, no new custom props; active state visible + focusable) + fallbacks by emulation.
+- Skills: []. Reviewer: agent.
 
-Player-view owns the settings controls (fontScale, textAlign, orpEnabled, chunkSize incl. experimental 3, reducedMotion override) and reports changes through `onSettingsChange(partial)`; app persists them via store (critic fix #6). Dashboard owns the explicit-accept WPM suggestion button reporting through `onAcceptWpm(n)`.
+### M-RS2 shelf-restyle (RS2, ADR-19)
+- Objective: library shelf restyle + `h()` migration; owns `app.css` library section only; behavior identical.
+- Inputs: `issues/S2-shelf-restyle.md`, pass-3.
+- Outputs: `src/ui/library.js`, `styles/app.css` (S2 section).
+- touches: [`styles/app.css`, `src/ui/library.js`]
+- blocked_by: [M-RB2, M-RB3, M-RS1, M-F01] (F01 owns same view file; lands first)
+- Acceptance: walkthrough (shelf matches spec incl. empty-state invitation; import/open/delete/export/paste/URL flows behave as before).
+- Skills: []. Reviewer: agent.
 
-### 1b. DOM contract — **pinned in this plan** (chosen over "shell first"; shell is additionally in wave 1 so there is no drift)
+### M-RS3 page-rail-setup (RS3, ADR-19)
+- Objective: player+rail+setup; owns `app.css` player/rail/setup sections only. Setup block lives inside player-view (no setup-view.js — critic: phantom deleted).
+- Inputs: `issues/S3-page-rail-setup.md`.
+- Outputs: `src/ui/player-view.js`, `styles/app.css` (S3 sections).
+- touches: [`styles/app.css`, `src/ui/player-view.js`]
+- blocked_by: [M-RB1, M-RB2, M-RB3, M-RS2, M-F10] (F10 owns same view file; lands first)
+- Acceptance: walkthrough (rail/strip render via `splitSentences`/`sessionTicks`; setup block persists settings; playback/keys/announcements identical).
+- Skills: []. Reviewer: agent.
 
-`index.html` must contain exactly these hooks; views code against them and must not invent new ones:
+### M-RS4 quiz-copy (RS4, ADR-19)
+- Objective: quiz copy/styling; owns `app.css` quiz section only. Must preserve ADR-12 answering/authoring split.
+- Inputs: `issues/S4-quiz-copy.md`.
+- Outputs: `src/ui/quiz-view.js` (style/copy only), `styles/app.css` (S4 section).
+- touches: [`styles/app.css`, `src/ui/quiz-view.js`]
+- blocked_by: [M-RB2, M-RB3, M-RS3, M-F02] (F02 owns same file; lands first)
+- Acceptance: walkthrough + `node --test test/quiz-authoring.test.js` — replaced: answering-exclusion grep still clean + `node --test test/quiz.test.js` green (no new node file; DOM-bound per ADR-6).
+- Skills: []. Reviewer: agent.
 
-- `#app` — app root.
-- `#view-library`, `#view-player`, `#view-quiz`, `#view-dashboard` — `<section>` per view; inactive ones carry `hidden`.
-- `#live-region` — single `aria-live="polite"` node, owned by `a11y.announce`.
-- all controls are real `<button>`/`<input>`/`<select>` elements; no click-only divs.
-- `styles/app.css` defines color/contrast tokens at ≥4.5:1, focus-visible outline, and exactly these settings variables consumed by views: `--font-scale` (number, default 1) and `--text-align` (default `center`), applied by views via `style.setProperty` on `#view-player` (critic fix #3).
-- ORP anchor contract (critic fix #3): a rendered chunk is
-  `<div class="rsvp-stage"><span class="rsvp-left">…</span><span class="rsvp-orp">X</span><span class="rsvp-right">…</span></div>`
-  with `.rsvp-stage { display:grid; grid-template-columns: 1fr auto 1fr }`, `.rsvp-left { text-align:right }`, `.rsvp-right { text-align:left }` — the ORP character therefore stays at a fixed horizontal x regardless of word length or `--font-scale` ("two font scales" acceptance becomes a measurable visual check).
-- Ownership rule: `shell` owns `index.html` + `styles/app.css` + `src/ui/a11y.js` + the contract ids; each view module owns only its own subtree inside its `#view-*` section and may add classes (not ids) there; only `shell` edits `index.html` after wave 1 (critic fix #3/#4).
-- `<script type="module" src="./src/app.js">` is the only script tag.
+### M-RS5 log-lap-rows (RS5, ADR-19)
+- Objective: dashboard rows; owns `app.css` dashboard section only.
+- Inputs: `issues/S5-log-lap-rows.md`.
+- Outputs: `src/ui/dashboard.js`, `styles/app.css` (S5 section).
+- touches: [`styles/app.css`, `src/ui/dashboard.js`]
+- blocked_by: [M-RB1, M-RB2, M-RB3, M-RS4]
+- Acceptance: walkthrough (rows render, grouping key still `textId`) + `node --test test/` green.
+- Skills: []. Reviewer: agent.
 
-### 1c. Module invariants (violation = review reject)
+### M-RS6 motion-responsive (RS6, ADR-19)
+- Objective: motion/responsive pass; owns motion/responsive sections; reduced-motion default-off auto-advance preserved (ADR-7).
+- Inputs: `issues/S6-motion-responsive.md`.
+- Outputs: `styles/app.css` (S6 sections).
+- touches: [`styles/app.css`]
+- blocked_by: [M-RS5]
+- Acceptance: walkthrough (`prefers-reduced-motion` disables auto-advance; responsive breakpoints per spec) + `node --test test/` green.
+- Skills: [`accessibility`]. Reviewer: agent.
 
-1. `src/lib/*` never imports `src/ui/*`, never touches `document`/`window` at import time, never calls `fetch`.
-2. `store.js` is the only IndexedDB user.
-3. `player.js` is the only module owning a timer (`rAF`/`setTimeout`); views never schedule playback.
-4. `orp.js` is the only module with ORP constants.
-5. `zip.js` is the only ZIP parser; `epub.js` calls it and does not parse ZIP itself.
-6. Reader-facing copy frames peripheral/perceptual-span work as a calibration pathway, never a guaranteed speed boost (grilling gate 5).
-7. `pipeline.js` reaches EPUB via **dynamic** `await import('./epub.js')` so deleting `zip.js`/`epub.js` leaves the TXT path loadable (ADR-3 cut isolation).
+### M-RS7 green-release (RS7, ADR-20)
+- Objective: VERIFICATION + PUSH ONLY. No feature work. Push iff suite green + extended e2e green + independent review APPROVED; live-URL check after push. M-F06H human pass tracked separately and does not gate release (automation covers attributes per ADR-16).
+- Inputs: all prior module outputs.
+- Outputs: release push record, live-URL check note, walkthrough visual-assertion extension (owned here; F05's round-trip extension landed earlier in G0 — sequential, no collision).
+- touches: [`.autoforge/validation/e2e-walkthrough.mjs`]
+- blocked_by: [M-F01, M-F02, M-F03, M-F04, M-F05, M-F06A, M-F07, M-F08, M-F10, M-RB1, M-RB2, M-RB3, M-RS1, M-RS2, M-RS3, M-RS4, M-RS5, M-RS6] (release gate over all agent work; F06H excluded by design)
+- Acceptance: `node --test test/` green + extended e2e green + review APPROVED recorded + live URL 200 with zero post-load external requests.
+- Skills: []. Reviewer: agent.
 
-## 2. Modules
+## DAG / parallel schedule
 
-Every module lists `touches` (exclusive globs), `blocked_by`, runnable acceptance, skills, reviewer requirement, cuttable flag.
+- G0 (parallel, pairwise disjoint): M-RB2 | M-RB3 | M-F04 | M-F05 | M-F06A | M-F07 | M-F08. Only M-F05 touches the walkthrough in G0. Harness scripts are standalone CDP runners (explicit commands, not `node --test`).
+- G1 (parallel, disjoint): M-RB1 | M-F02.
+- G2 (strictly sequential app.js chain): M-RB1 → M-F03 → M-F01 → M-F10. test/metrics.test.js append protocol: RB1 writes sessionTicks cases, F03 appends activeMs cases, no rewrites.
+- G3 (strictly sequential S-chain): M-RS1 → M-RS2 → M-RS3 → M-RS4 → M-RS5 → M-RS6 → M-RS7. Shared `styles/app.css` with per-ticket section ownership; shared view files serialized by the added F-edges (RS1←F10, RS2←F01, RS3←F10, RS4←F02).
+- Critical path: M-RB3 → M-RS1 → M-RS2 → M-RS3 → M-RS4 → M-RS5 → M-RS6 → M-RS7. App.js chain and M-F06H join RS7 as side gates (F06H tracked, non-blocking).
+- Interface freeze refs: `activeMs`/`sessionTicks`/`splitSentences`/`h()`/quiz-view split/tokens-`:root`-only per §8 verbatim; frozen-unchanged list untouched; data deltas additive only (§9).
 
-### G1 — wave 1 (all touches disjoint, run same turn)
+## Coverage check (tracker-index entry → module, exactly once)
 
-**M1 `shell`** — static presentation foundation + a11y primitives.
-- inputs: `decisions.md` §1 ADR-7, §6.1; `grilling.md:17,44`
-- outputs: `index.html`, `styles/app.css`, `src/ui/a11y.js`, `package.json`
-- touches: `index.html`, `styles/app.css`, `src/ui/a11y.js`, `package.json`
-- blocked_by: none
-- acceptance: open `http://localhost:8080/` via `python3 -m http.server 8080` → DOM contract §1b present, correct ids, no console errors; `a11y.prefersReducedMotion()` returns false/true under OS toggle and `announce()` writes into `#live-region`; keyboard-tab reaches every control in the shell; `package.json` is exactly `{"type":"module"}` — no dependencies, no scripts (critic fix #2; makes `node --test` ESM deterministic instead of relying on Node ≥22 syntax detection).
-- notes: local Node is v26.7.0 (deflate-raw supported); README pins Node ≥22.7 for contributors.
-- skills: frontend-design-direction, accessibility (WCAG 2.2 AA), frontend-a11y. reviewer: required (DOM contract + a11y).
-
-**M2 `lib-text`** — tokenize + chunk policy.
-- inputs: ADR-8; `decisions.md` §3
-- outputs: `src/lib/text.js`, `test/text.test.js`
-- touches: `src/lib/text.js`, `test/text.test.js`
-- blocked_by: none
-- acceptance: `node --test test/text.test.js` green with cases: never merge across paragraph boundary; sentence-final punctuation ends chunk; token >14 chars own chunk; size ∈ {1,2,3}; default 2; `trail` preserved.
-- skills: tdd-workflow, golang-testing patterns not applicable — use tdd-workflow. reviewer: required (policy correctness = ADR-8).
-
-**M3 `lib-orp`** — ORP rule, single authority.
-- inputs: ADR-7/§3 ORP table; glossary correction (`report.md` §5)
-- outputs: `src/lib/orp.js`, `test/orp.test.js`
-- touches: `src/lib/orp.js`, `test/orp.test.js`
-- blocked_by: none
-- acceptance: `node --test test/orp.test.js` green for boundary lengths 1,2,5,6,9,10,13,14,20 and clamp; `orpParts` concatenation equals input.
-- skills: tdd-workflow. reviewer: required.
-
-**M4 `lib-quiz`** — seeded cloze generation + scoring.
-- inputs: ADR-4; §3 signatures
-- outputs: `src/lib/quiz.js`, `test/quiz.test.js`
-- touches: `src/lib/quiz.js`, `test/quiz.test.js`
-- blocked_by: none
-- acceptance: `node --test test/quiz.test.js` green: same seed → identical quiz; different seed differs; n=5; blanked word appears in `accepted`; `normalizeAnswer` case/punctuation/space normalization; `scoreQuiz` pct + perQuestion; `total=0` returned as 0 pct not NaN.
-- skills: tdd-workflow. reviewer: required (correctness of scoring ≥ UI concern).
-
-**M5 `lib-metrics`** — WPM, comprehension, trend, between-session suggestion.
-- inputs: ADR-9; §3
-- outputs: `src/lib/metrics.js`, `test/metrics.test.js`
-- touches: `src/lib/metrics.js`, `test/metrics.test.js`
-- blocked_by: none
-- acceptance: `node --test test/metrics.test.js` green: wpm(300,60000)=300; elapsedMs=0 guarded; comprehensionPct; summarize trend up/flat/down; suggestNextWpm +10% at ≥80, −10% at <60, hold otherwise; no in-session mutation path (pure).
-- skills: tdd-workflow. reviewer: required.
-
-**M6 `lib-store`** — the only IndexedDB wrapper. *(Merged: single file, no test file by ADR-6.)*
-- inputs: ADR-2; §3, §4 data model
-- outputs: `src/lib/store.js`
-- touches: `src/lib/store.js`
-- blocked_by: none
-- acceptance (critic fix #5 — all runnable, confirm is UI not store): browser console on the served app — `openStore()` then `put/get/getAll/del` round-trip on each of `texts|quizzes|sessions|settings`; `exportAll()` yields `{schemaVersion:1,texts,quizzes,sessions,settings}`; `importAll(json)` returns a documented error object when `schemaVersion !== 1` and otherwise replaces data (the user confirmation dialog is wired by `app` before calling `importAll` — not part of store); `put` rejects (does not silently drop) on quota error with a readable message.
-- skills: frontend-patterns (IDB), security-review (local-only guarantees). reviewer: required.
-
-**M7 `epub-import`** — ZIP central directory + EPUB text extraction. `cuttable: true`.
-- inputs: ADR-3; §3 `readZip`/`epubToChapters`
-- outputs: `src/lib/zip.js`, `src/lib/epub.js`, `test/zip.test.js`, `test/epub.test.js`
-- touches: `src/lib/zip.js`, `src/lib/epub.js`, `test/zip.test.js`, `test/epub.test.js`
-- blocked_by: none (its Node tests build a fixture in-file with `node:zlib`; the `ingest` dispatch check lives in M15)
-- acceptance: `node --test test/zip.test.js test/epub.test.js` green: fixture EPUB (method 0 and method 8) → chapter titles in spine order, text stripped of markup; ZIP64/encrypted/method∉{0,8}/non-UTF-8 → `UnsupportedFormatError` with readable message; never returns empty/garbled text silently.
-- Module ≠ session boundary: this worker MAY use two child sessions internally (zip.js+tests, then epub.js+tests) against the frozen `readZip` signature; the DAG is unchanged.
-- reviewer: required (high-risk module, ADR-3 gate).
-
-**M8 `docs-assets`** — runnable docs + calibration sample. *(Merged: docs/asset text only, one review unit.)*
-- inputs: `grilling.md:61-65`; ADR-10; `report.md` §5 glossary
-- outputs: `README.md`, `assets/sample.txt`
-- touches: `README.md`, `assets/sample.txt`
-- blocked_by: none
-- acceptance: README states the run command (`python3 -m http.server 8080`), Node ≥22.7 requirement for `node --test`, the “no build, no server-side, no telemetry, no accounts, zero network requests after load” privacy statement, the corrected glossary (ORP = Optimal Recognition Point), evidence notes, non-goals, the “user must have rights / DRM unsupported” notice, and a 4-week pilot plan (baseline week 1; 3 sessions/week with retention quiz; re-baseline week 4; what to watch: comprehension trend, not WPM alone — critic fix #9); `assets/sample.txt` is public-domain (Shakespeare/public-domain passage), 300–500 words, plain UTF-8.
-- skills: documentation. reviewer: required (copy accuracy: overclaim gate).
-
-### G2 — wave 2
-
-**M9 `lib-player`** — timing engine, no DOM, injected clock/scheduler.
-- inputs: ADR-5, ADR-9; §3; imports `orp.js` (read-only dependency; does not touch its globs)
-- outputs: `src/lib/player.js`, `test/player.test.js`
-- touches: `src/lib/player.js`, `test/player.test.js`
-- blocked_by: `lib-orp`
-- acceptance: `node --test test/player.test.js` green with fake clock: `nextDelay(chunk,wpm) = chunk.words.length * 60000/wpm` (1-word and 2-word cases asserted); play → one `chunk` event per deadline, no accumulated drift; `end` fires once at last chunk; pause stops emissions; `seek`/`step` clamp; `setWpm` applies from next chunk only (no retroactive jump); `getState` reflects playing/index/wpm; hidden-tab pause is a single exposed hook the browser adapter calls (engine test asserts pause-on-hide semantics).
-- skills: tdd-workflow, latency-critical-systems (timing). reviewer: required.
-
-**M10 `lib-pipeline`** — TXT normalize/chapterize + `ingest` dispatch.
-- inputs: §3; ADR-3 (dynamic EPUB import); ADR-10
-- outputs: `src/lib/pipeline.js`, `test/pipeline.test.js`
-- touches: `src/lib/pipeline.js`, `test/pipeline.test.js`
-- blocked_by: `lib-text`
-- acceptance: `node --test test/pipeline.test.js` green: BOM strip, `\r\n`→`\n`, blank-run collapse; chapters detected on `CHAPTER N`/`§` heuristics, else exactly 1 chapter; `.txt` dispatch returns `{title, source:'txt', chapters}`; unknown extension throws `UnsupportedFormatError`; `.epub` path reached only through dynamic import and, when `epub.js` is absent (ADR-3 cut), `.epub` ingest rejects with `UnsupportedFormatError('EPUB support unavailable')` — never a raw `ERR_MODULE_NOT_FOUND` (critic fix #7); module loads cleanly with `epub.js` absent.
-- skills: tdd-workflow. reviewer: required.
-
-### G3 — wave 3
-
-**M11 `ui-library`** — import/list/open/delete/export-import view.
-- inputs: frozen UI contract §1a, DOM contract §1b; `grilling.md:16`
-- outputs: `src/ui/library.js`, `test/harness/library.html`
-- touches: `src/ui/library.js`, `test/harness/library.html`
-- blocked_by: `shell`
-- acceptance: open the module's own harness `test/harness/library.html` on the static server with stub callbacks (harness file is owned by this module — critic fix #4): file input triggers `onImportFile(file)`; `render(texts)` lists title, source, word count; open/delete callbacks fire with correct id; export/import buttons call callbacks; copyright/DRM notice visible; full keyboard operation; focus returns to list after delete.
-- skills: frontend-patterns, frontend-a11y, accessibility. reviewer: required.
-
-**M12 `ui-player-view`** — RSVP renderer + SR/reduced-motion mode + settings controls.
-- inputs: §1a/§1b; ADR-7; `report.md` §6 keyboard map (Space, ←/→, ↑/↓ or ±, Esc)
-- outputs: `src/ui/player-view.js`, `test/harness/player-view.html`
-- touches: `src/ui/player-view.js`, `test/harness/player-view.html`
-- blocked_by: `shell`, `lib-player`, `lib-orp`
-- acceptance: open `test/harness/player-view.html` with a stub player: words render per the §1b ORP anchor contract (`--font-scale` 1 and 1.5, ORP char stays at fixed x); Space/arrows/±/Esc behave per key map; visual region `aria-hidden`, `role="status"` announces at sentence boundaries only; `prefers-reduced-motion: reduce` defaults to sentence-at-a-time mode with `aria-live="polite"` manual advance; focus visibly outlined; `start()` consumes an injected player instance and never creates a timer; settings controls (fontScale, textAlign, orpEnabled, chunkSize incl. experimental 3, reducedMotion override) call `onSettingsChange(partial)` and `renderSettings(settings)` reflects persisted values (critic fix #6).
-- skills: frontend-a11y, accessibility, motion-foundations (reduced motion). reviewer: required (a11y gate 4).
-
-**M13 `ui-quiz-view`** — cloze quiz editor/submit. *(Split from merged M13 per critic fix #8; each half is one worker session.)*
-- inputs: §1a/§1b; ADR-4; `grilling.md:15`
-- outputs: `src/ui/quiz-view.js`, `test/harness/quiz-view.html`
-- touches: `src/ui/quiz-view.js`, `test/harness/quiz-view.html`
-- blocked_by: `shell`, `lib-quiz`
-- acceptance: open `test/harness/quiz-view.html`: quiz shows 5 cloze items, each editable with an “auto-generated, edit before use” label; submit calls `onSave` with edited questions; cancel calls `onCancel`; empty/absent quiz renders an empty state without errors.
-- skills: frontend-patterns, frontend-a11y, accessibility. reviewer: required.
-
-**M13b `ui-dashboard`** — progress dashboard + explicit WPM suggestion.
-- inputs: §1a/§1b; ADR-9; `grilling.md:15`
-- outputs: `src/ui/dashboard.js`, `test/harness/dashboard.html`
-- touches: `src/ui/dashboard.js`, `test/harness/dashboard.html`
-- blocked_by: `shell`, `lib-metrics`
-- acceptance: open `test/harness/dashboard.html`: table shows WPM **and** comprehension % from the same session, trend badge, suggestion button (+10%/−10% per ADR-9) requiring explicit accept → `onAcceptWpm(n)`; 3-word chunk sessions carry an “experimental” label; empty state renders without errors.
-- skills: frontend-patterns, frontend-a11y, accessibility. reviewer: required.
-
-### G4 — wave 4
-
-**M14 `app`** — composition root; last, blocked by all views/libs.
-- inputs: all frozen interfaces; §1b DOM contract
-- outputs: `src/app.js`
-- touches: `src/app.js`
-- blocked_by: `shell`, `lib-text`, `lib-orp`, `lib-player`, `lib-quiz`, `lib-metrics`, `lib-store`, `lib-pipeline`, `epub-import`, `ui-library`, `ui-player-view`, `ui-quiz-view`, `ui-dashboard`
-- acceptance (trimmed per critic fix #8; the full end-to-end walkthrough is M15's job): `node --test test/` all green (proves lib tests unaffected by DOM code) **and** browser seams check on the served app: import `assets/sample.txt` → baseline session recorded (`kind:'baseline'`) → open player, exit back → reload page → text, settings, session persist; exactly one `#view-*` visible at a time; switching tabs mid-playback pauses (visibilitychange → `player.pause()`; critic fix #1) and resuming never fast-forwards hidden time; a user-confirmed JSON import calls `store.importAll` only after confirm.
-- skills: frontend-patterns, error-handling. reviewer: required (integration seams).
-
-### G5 — wave 5
-
-**M15 `verify-acceptance`** — acceptance gate, no source edits. *(Not a §6 file; required by grilling gate 4, ADR-3 gate, ADR-10 verification, and the acceptance criteria in `grilling.md:61-65`.)*
-- inputs: all outputs; `grilling.md` acceptance list; ADR-3 quality gate
-- outputs: `.autoforge/validation/walkthrough.md`
-- touches: `.autoforge/validation/`
-- blocked_by: `app`, `docs-assets`
-- acceptance (each step recorded with observed result in the report file):
-  1. Node-level dispatch check: `node --input-type=module -e "const m=await import('./src/lib/pipeline.js'); ..."` on the fixture EPUB → `source:'epub'`, correct chapter count. If EPUB was cut, record ADR-3 fallback and skip.
-  2. Real-book gate: import one DRM-free Project Gutenberg EPUB through the UI → correct chapter count + readable text (ADR-3 gate). Cut (per §4) is permitted here as well as at M7 if this fails.
-  3. Browser walkthrough: sample TXT import → baseline WPM → RSVP play 1-2 words → quiz → dashboard → reload → persistence.
-  4. A11y pass: keyboard-only run of the whole loop; screen-reader mode; `prefers-reduced-motion` default; contrast spot-check (gate 4 — hard stop if failing).
-  5. Privacy pass: Network panel zero requests after load; no telemetry/accounts present; grep confirms no `fetch(` in `src/`.
-  6. Docs pass: README accuracy vs shipped behavior; overclaim copy check.
-- skills: browser-qa, accessibility, verification-loop. reviewer: required (independent of implementers; failure → halt per gate 4).
-- cuttable: false (but EPUB steps 1–2 are skippable when M7 is cut).
-
-## 3. Execution work order (DAG)
-
-```text
-G1 (8 parallel, touches disjoint):
-  shell ──────────────┐
-  lib-text ────────┐  │
-  lib-orp ─────┐   │  │
-  lib-quiz ────┼───┼──┼──┐
-  lib-metrics ─┼───┼──┼──┼──┐
-  lib-store ───┼───┼──┼──┼──┼──┐
-  epub-import ─┼───┼──┼──┼──┼──┼──┐
-  docs-assets ─┼───┼──┼──┼──┼──┼──┼──┐
-G2:            ▼   ▼  │  │  │  │  │  │
-  lib-player (or p) ──┼──┼──┼──┼──┼──┼─┐
-  lib-pipeline (text)─┘  │  │  │  │  │ │
-G3:                      ▼  ▼  ▼  │  │ │
-  ui-library (shell)                │  │ │
-  ui-player-view (shell,player,orp) │  │ │
-  ui-quiz-view (shell,quiz)         │  │ │
-  ui-dashboard (shell,metrics)      ┘  │ │
-G4:                                     ▼ │
-  app (all)                               │
-G5:                                       ▼
-  verify-acceptance (app, docs-assets) ◄──┘
-```
-
-- **Parallel groups**: G1 = {shell, lib-text, lib-orp, lib-quiz, lib-metrics, lib-store, epub-import, docs-assets}; G2 = {lib-player, lib-pipeline}; G3 = {ui-library, ui-player-view, ui-quiz-view, ui-dashboard}; G4 = {app}; G5 = {verify-acceptance}. Each group is provably touches-disjoint (globs listed per module; no file appears in two modules).
-- **Serialization reasons**: `app.js` imports every view/lib → must be last; views import `a11y` and rely on the pinned DOM contract → after `shell`; `lib-player` imports `orp.js` → after `lib-orp`; `lib-pipeline` imports `text.js` → after `lib-text`; verification needs the whole composition → after `app`.
-- **Critical path**: `lib-orp → lib-player → ui-player-view → app → verify-acceptance` (5 waves); wall-clock is therefore set by player-view (biggest single unit) and the verification walkthrough.
-- **Module ≠ child-session boundary**: G1/Q1 items are one-session each; `ui-quiz-dashboard` may be split into two child sessions (quiz then dashboard) inside one module without changing the DAG, since its files share no globs with others.
-
-## 4. EPUB cut protocol (ADR-3)
-
-Cut is allowed at M7's gate (fixture tests failing on real-world EPUBs, or time pressure) or at M15 step 2 (real Gutenberg EPUB gate fails) and consists of: delete `src/lib/zip.js`, `src/lib/epub.js`, `test/zip.test.js`, `test/epub.test.js`; M15 steps 1–2 are recorded as "cut per ADR-3". Because `pipeline.js` uses dynamic import and converts a missing module into `UnsupportedFormatError`, plus `ingest()` returns the EPUB shape only from that path, no other module changes beyond that error path. Acceptance walkthrough then rests on TXT + the bundled sample.
-
-## 5. Coverage check — every `decisions.md` §6 file owned exactly once
-
-| §6 item | File(s) | Module |
-|---|---|---|
-| 1 | `index.html`, `styles/app.css` | `shell` |
-| 2 | `src/lib/text.js`, `test/text.test.js` | `lib-text` |
-| 3 | `src/lib/orp.js`, `test/orp.test.js` | `lib-orp` |
-| 4 | `src/lib/player.js`, `test/player.test.js` | `lib-player` |
-| 5 | `src/lib/quiz.js`, `test/quiz.test.js` | `lib-quiz` |
-| 6 | `src/lib/metrics.js`, `test/metrics.test.js` | `lib-metrics` |
-| 7 | `src/lib/store.js` | `lib-store` |
-| 8 | `src/lib/pipeline.js`, `test/pipeline.test.js` | `lib-pipeline` |
-| 9 | `src/ui/a11y.js` → `shell`; `src/ui/library.js` → `ui-library` | split (justified: a11y primitives block all views, library is a view) |
-| 10 | `src/ui/player-view.js` | `ui-player-view` |
-| 11 | `src/ui/quiz-view.js` | `ui-quiz-view` |
-| 11b | `src/ui/dashboard.js` | `ui-dashboard` |
-| 12 | `src/app.js` | `app` |
-| 13 | `src/lib/zip.js`, `src/lib/epub.js`, `test/zip.test.js`, `test/epub.test.js` | `epub-import` (cuttable) |
-| 14 | `README.md` | `docs-assets` |
-| 15 | `assets/sample.txt` | `docs-assets` |
-
-Result: 15 / 15 owned once; 0 unowned; 0 owned twice. Out-of-§6 files (orchestrator-approved, critic-driven): `package.json` (shell), `test/harness/{library,player-view,quiz-view,dashboard}.html` (respective view modules), `.autoforge/validation/walkthrough.md` (verification evidence, not app scope).
-
-## 6. Out of scope (guard)
-
-No bundler config, no CI config, no service worker, no telemetry, no accounts, no cloud sync, no PDF, no LLM quiz generation, no DRM handling, no per-chunk complexity model, no in-session adaptive WPM (ADR-8/9). `package.json` is allowed ONLY as `{"type":"module"}` owned by `shell` (critic fix #2) — no dependencies, no scripts, no lockfile. Any worker finding more needed must stop and escalate.
+F01→M-F01; F02→M-F02; F03→M-F03; F04→M-F04; F05→M-F05; F06→M-F06A+M-F06H (ADR-16 split, only sanctioned doubling);
+F07→M-F07; F08→M-F08; F10→M-F10; RB1→M-RB1; RB2→M-RB2; RB3→M-RB3; RS1→M-RS1; RS2→M-RS2; RS3→M-RS3; RS4→M-RS4; RS5→M-RS5; RS6→M-RS6; RS7→M-RS7.
+19/19 owned. No module outside tickets + architecture. Sizes: each module ≤3 source files + tests, one worker session.

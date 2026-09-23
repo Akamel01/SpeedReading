@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-23T07:34:53.412Z",
+  "ranAt": "2026-09-23T13:26:07.875Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -15,7 +15,7 @@
     {
       "step": "privacy: network requests after initial load",
       "ok": true,
-      "detail": "16 requests total since load (informational)"
+      "detail": "18 requests total since load (informational)"
     },
     {
       "step": "import: calibration.txt appears in library",
@@ -30,7 +30,7 @@
     {
       "step": "ADR-3 gate: real Gutenberg EPUB imports with title + word count",
       "ok": true,
-      "detail": "Pride and Prejudice (epub, 130614 words)OpenDelete"
+      "detail": "Pride and Prejudice (epub, 130614 words)Chapter 1The Project Gutenberg eBook of Pride and PrejudiceI"
     },
     {
       "step": "import: paste box creates a first-class text",
@@ -42,6 +42,20 @@
     },
     {
       "step": "import: .docx ingests via in-repo zip reader",
+      "ok": true
+    },
+    {
+      "step": "chapter-picker: explicit chapter selection opens Chapter Two",
+      "ok": true,
+      "detail": "OPENED header=\"Test Book — Chapter Two\""
+    },
+    {
+      "step": "chapter-picker: session carries chapter attribution",
+      "ok": true,
+      "detail": "{\"chapterIndex\":1,\"chapterTitle\":\"Chapter Two\",\"kind\":\"baseline\"}"
+    },
+    {
+      "step": "chapter-picker: legacy unattributed session still renders (never filtered)",
       "ok": true
     },
     {
@@ -68,7 +82,17 @@
     {
       "step": "a11y: live region announced a sentence boundary",
       "ok": true,
-      "detail": "to end."
+      "detail": "dash."
+    },
+    {
+      "step": "span-drill: preview zone renders upcoming words beside the anchor",
+      "ok": true,
+      "detail": "preview=\"1 carefully\""
+    },
+    {
+      "step": "span-drill: recognition check scores the answer",
+      "ok": true,
+      "detail": "Recall check: which word followed “end”? → not quite — recognition 0/1"
     },
     {
       "step": "visibility: playback pauses when tab hidden",
@@ -80,22 +104,37 @@
       "detail": "5 questions"
     },
     {
+      "step": "span-drill: recognition counts persisted at session end (one submitted answer)",
+      "ok": true,
+      "detail": "{\"drill\":\"span\",\"correct\":0,\"total\":1}"
+    },
+    {
       "step": "quiz: answers are the reader's own (inputs empty, no prefill)",
       "ok": true
     },
     {
       "step": "dashboard: session row rendered with comprehension",
       "ok": true,
-      "detail": "rows=2"
+      "detail": "rows=4"
     },
     {
       "step": "dashboard: summary shows wpm + comprehension trend",
       "ok": true,
-      "detail": "1 sessions · best 1505 wpm · avg 1505 wpm · avg comprehension 0% · trend flat"
+      "detail": "3 sessions · best 1842 wpm · avg 1152 wpm · avg comprehension 0% · trend flat"
     },
     {
       "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
       "ok": true
+    },
+    {
+      "step": "span-drill: quiz save preserves recognition counts and stores the quiz score separately",
+      "ok": true,
+      "detail": "{\"drill\":\"span\",\"correct\":0,\"total\":1,\"quizScore\":{\"correct\":0,\"total\":5,\"pct\":0}}"
+    },
+    {
+      "step": "quiz: persisted record carries chapterIndex (ADR-11)",
+      "ok": true,
+      "detail": "{\"chapterIndex\":0,\"textId\":\"string\"}"
     },
     {
       "step": "persistence: text survives reload",
@@ -110,18 +149,49 @@
     {
       "step": "a11y: body text contrast >= 4.5:1",
       "ok": true,
-      "detail": "ratio=18.88"
+      "detail": "ratio=16.09"
+    },
+    {
+      "step": "redesign: body uses the folio token",
+      "ok": true,
+      "detail": "rgb(246, 244, 236)"
+    },
+    {
+      "step": "redesign: header material uses backdrop blur",
+      "ok": true,
+      "detail": "blur(16px) saturate(1.4)"
+    },
+    {
+      "step": "redesign: margin rail renders one tick per session",
+      "ok": true,
+      "detail": "ticks=3"
+    },
+    {
+      "step": "redesign: log rows read as laps with paired delta",
+      "ok": true,
+      "detail": "Lap 1"
+    },
+    {
+      "step": "redesign: delta column rendered beside comprehension",
+      "ok": true,
+      "detail": "delta=\"—\""
+    },
+    {
+      "step": "redesign: responsive rail strip + sticky transport at 390px",
+      "ok": true,
+      "detail": "row/sticky"
     },
     {
       "step": "privacy: zero external/telemetry network requests (only same-origin static assets)",
       "ok": true,
-      "detail": "55 requests total, all same-origin static assets; no fetch/XHR/beacon"
+      "detail": "61 requests total, all same-origin static assets; no fetch/XHR/beacon"
     }
   ],
-  "passed": 25,
+  "passed": 39,
   "failed": 0,
   "networkRequests": [
     "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
     "http://127.0.0.1:8177/styles/app.css",
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
@@ -137,14 +207,16 @@
     "http://127.0.0.1:8177/src/ui/dashboard.js",
     "http://127.0.0.1:8177/src/ui/a11y.js",
     "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
     "http://127.0.0.1:8177/src/lib/epub.js",
     "http://127.0.0.1:8177/src/lib/zip.js",
     "http://127.0.0.1:8177/src/lib/docx.js",
     "http://127.0.0.1:8177/src/lib/pdf.js",
-    "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
     "https://example.com/",
+    "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.worker.mjs",
     "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
     "http://127.0.0.1:8177/styles/app.css",
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
@@ -160,7 +232,9 @@
     "http://127.0.0.1:8177/src/ui/dashboard.js",
     "http://127.0.0.1:8177/src/ui/a11y.js",
     "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
     "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
     "http://127.0.0.1:8177/styles/app.css",
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
@@ -175,7 +249,8 @@
     "http://127.0.0.1:8177/src/ui/quiz-view.js",
     "http://127.0.0.1:8177/src/ui/dashboard.js",
     "http://127.0.0.1:8177/src/ui/a11y.js",
-    "http://127.0.0.1:8177/src/lib/orp.js"
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/ui/h.js"
   ],
   "verdict": "GO"
 }

@@ -1,70 +1,21 @@
-# Grilled Requirements for SpeedReading Trainer (Greenfield)
+| Question | Evidence (path + lines) | Recommendation | Self-challenge |
+|---|---|---|---|
+| 1) Do F01 chapter picker changes risk breaking quiz generation/open-text attribution across sessions? | F01: Chapter list, chapter jump, and session-chapter attribution acceptance; F01 lines 11-13; F01 also notes acceptance criteria. F02: Quiz authoring mode exists to separate authoring from answering (lines 5-6, 11-14) and interfaces show quiz text/id handling (34-37). | Assume surface compatibility if chapter attribution remains tied to text/session; add regression tests focusing on chapter-scoped quiz or dashboard hinges. Treat chapter as a session-anchored metadata, not a quiz input. | If chapter-scoped quiz data is ever wired into quiz generation, it could bleed into answers or scoring. Verify in a regression that chapter context does not alter quiz questions when text id is unchanged. |
+| 2) How should Quiz authoring mode (F02) interact with answering flow (F02 vs F04) to avoid leaking answers? | F02 describes a separate authoring view with editable expected answers; accepting criteria ensure answering inputs remain empty and answers hidden (11-14). Key interfaces note authoring writes quiz records while answering reads expectations (34-36). | Enforce strict separation: authoring writes a separate quiz record or a versioned field (edited flag) and answering reads only the non-edited expectations; do not render answers in the answering DOM. | If edited answers float into the answering path, user results could deviate from intended scoring; guard via a clear separation boundary and a dedicated field for edited vs. base questions. |
+| 3) What guarantees WPM/active-time metrics remain stable as per F03 when integrating the new unit-tested function? | F03 acceptance requires a pure function for active-time with unit tests; lines 11-15 show unit tests and happiness path; F03 notes that composition root should not alter happy path timing. | Implement the pure function and keep the composition root calling pattern unchanged; add unit tests that cover pauses, hidden tabs, and mid-session changes as described. | If tests don’t cover edge pause behavior, real user pauses could alter WPM; expand tests to cover empty and multi-chunk edge cases. |
+| 4) How do F04’s regression-lockin tests constrain future quiz-generator changes? | F04 defines a regression test for real-prose excerpts with fixed seed to lock output; acceptance criteria 11-14 emphasize exact questions, stopwords, and seed sensitivity. | Treat this as a non-negotiable fixture; any generator change must update the fixture deliberately with review. Integrate this into the test suite and governance gates. | If a generator tweak improves quality, it must be reflected in a deliberate fixture diff; otherwise, risk regression in user experience. |
+| 5) What needs to be true for F05’s export/import loop to stay healthy alongside validation? | F05 acceptance includes end-to-end browser coverage for export/import, and incorrect schema handling; lines 11-14 outline tests; state in validation artifacts confirms browser walk tests exist. | Extend the existing browser harness to exercise the full round-trip (export, wipe, import with confirm, verify records) and a negative import with wrong schema; ensure tests pass in MVP. | If browser test coverage lags, a bad import could corrupt state; keep schema validation strong and test negative path thoroughly. |
+| 6) How should F06 SR/keyboard verification be treated in automation vs human QA? | F06 blocks are ready-for-human; acceptance includes documented keyboard path and screen-reader pass and notes. | Maintain automation for ARIA/focus checks but reserve a human pass for announcements and realistic SR behavior; consider gating with a human SR pass gate before release. | If automation proves insufficient, a hidden SR pass must still occur; ensure human SR tickets exist as follow-ups. |
+| 7) What about F07 IDB failure hardening risks? | F07 acceptance requires simulated quota/abort failures and readable UI errors; state notes describe browser paths not exercised yet; 11-14 show tests for quota/abort and malformed payloads. | Add browser-context simulated failure tests and ensure UI surfaces actionable errors; reuse existing alert surfaces; ensure import does not corrupt data. | If tests miss a corner case (e.g., repeated aborts), extend the simulated harness to cover it. |
+| 8) Are large-book performance controls (F08) compatible with MVP scope here? | F08 acceptance outlines measuring tokenize/chunk timing for a 130k-word book; lines 11-14 about timing/memory budgets; 31-41 discuss budget verdict and before/after numbers. | Implement a lightweight perf harness in MVP; capture numbers; if within budget, no code changes; otherwise plan micro-optimizations and document results. | If budget targets change, we must adjust perf tests; maintain a separate budget artifact. |
 
-Objective restatement
-- Build an in-browser speed-reading trainer that uses proven RSVP-style techniques to increase reading speed and comprehension, with 1-3 word chunking and parafoveal preview concepts. Grounded in the evidence base summarized in the discovery report; no backend or accounts in v1. This mirrors the discovery objective: show books/texts as 1-3 words at a time to train peripheral vision and comprehension (RSVP, parafoveal preview, metacognitive strategies).
+### Hidden/Adjacent requirements and assumptions
+- Known limitations in .state.json (e.g., chapter picker gap, IDB quotas, SR manual test gaps, WPM cap) are recorded there (lines 33-38). | - | - |
 
-Evidence-grounded scope anchor
-- Discovery indicates strong evidence for RSVP and parafoveal preview as core levers, with metacognitive strategies and baseline calibration as important complements. See Discovery Report 3–4, 22–31, 36–45, 40–43, and Appendix sources. Also note the zero-tracker scope and read-only artifact constraint (Tracker Index: NONE; read-only surfacing).
+### MVP scope confirmation for this run (speedreading-002)
+- Grilling covers F01–F08 and RB1–RB3 (frontier items and first redesign/build blockers) with explicit evidence citations above. | - | - |
 
-Q/A table (question -> evidence-backed answer -> recommendation -> self-challenge)
-| Question | Evidence | Answer | Recommendation | Self-challenge |
-|---|---|---|---|---|
-| 1. Which techniques belong in v1 vs later? Is peripheral vision training a claim or a framing? | Evidence: RSVP (strong); parafoveal preview (moderate-strong); metacognitive strategies (moderate). Peripheral training is cited as a longer-term calibration path (moderate). See Discovery Report sections 3 and Appendix 92-95. | Core v1: RSVP with 1-2 word chunks; ORP-based preview framing; baseline calibration; metacognitive training. Peripheral vision training remains with longer-term calibration as a roadmap, not a guaranteed v1 claim. | Put RSVP + 1-2 word chunks + baseline checks in v1; frame peripheral training as a longer-term calibration path, not a direct speed boost in all texts. | Could peripheral training be too risky to claim in v1 given heterogeneous literature? Propose phased milestones to validate 1- to 3-word chunk benefits per text type. |
-| 2. How to measure comprehension meaningfully and prevent delusional high WPM? | Evidence: Knowledge emphasizes tradeoffs in speed vs comprehension; metacognitive training can help; baseline and retention checks are recommended by e.g., Klimovich 2023. See Discovery Report 22–35, 40–45. | Use retention quizzes tied to text passages; implement 1-2 short retention checks per chunked session; baseline WPM with periodic comprehension tests and spaced practice. | Implement a browser-based quiz per text with objective questions and a simple retake policy; ensure WPM is contextualized with comprehension metrics. | If quizzes are too easy, users may game the metric; add distractors and alignment with passage content. |
-| 3. Chunk policy: 1 vs 2 vs 3 words; default; punctuation handling; adaptive rate? | Evidence: 1-3 word chunks align with parafoveal preview; literature shows mixed evidence; 1-2 word chunks reasonable starting point. See Discovery Report 44–46, 78–81. | Default to 1-2 word chunks with optional 3-word previews as an experimental toggle; adapt rate based on comprehension feedback and text complexity. | Start with 1-2 words; expose an advanced toggle to enable 3-word chunks after calibration. | Ensure adaptive rate changes do not disrupt comprehension tracking. |
-| 4. Training loop: baseline calibration, progressive overload, spaced sessions, metrics display | Evidence: Baseline WPM, comprehension checks, spaced practice are recommended; educational measurement supports calibration; progression depends on text type (moderate evidence). See Discovery Report 40–43, 81. | Implement a simple baseline calibration (measure WPM on a baseline passage), then progressively increase target WPM with retention checks; include a visible progress dashboard. | Provide a browser-only progress view with text difficulty indicators and recent quiz results. | Avoid over-reliance on superficial speed metrics; ensure text-level retention is tracked. |
-| 5. Text pipeline: formats, privacy, import, where content lives; copyright/DRM | Evidence: Privacy constraints noted; no DRM or PDFs in v1; importing TXT/EPUB; privacy implications minimal without data collection. See Discovery Report 53–57, 65–70, and 71–74. | Support TXT/EPUB import, simple text cleaning, chaptering; retain content only in memory or browser storage; no DRM circumvention; no cloud sync in v1. | Limit imports to DRM-free text and public-domain sources or user-owned texts; clearly label copyright considerations in UI; store text locally in IndexedDB/LocalStorage only. | If DRM/DRM-like protections block content, mark as a non-goal or instruct user to provide non-DRM sources. |
-| 6. Accessibility (WCAG 2.2 AA); reduced motion; keyboard; screen readers | Evidence: Accessibility is a must for any UI; ensure reduced motion is supported; keyboard accessibility; screen-reader narrative for RSVP mode. See Appendix and WCAG-related guidance in the skillset. | Include: prefers-reduced-motion support, keyboard navigation, ARIA live regions for the RSVP stream, and clear focus outlines. | Implement accessible controls for font size, color contrast, and pause/play; ensure RSVP stream is announced by screen readers. | If accessibility conflicts with speed goals, prefer accessibility first as default. |
-| 7. Non-goals / anti-scope | Evidence: Discovery indicates scope is read-only surface; no accounts, cloud sync, or LLM usage in v1; privacy constraints apply; DRM not supported. See Tracker Open Tickets; Next Steps. | Exclude accounts, cloud sync, social sharing, LLM-based quizzes, or DRM-skipping features in v1; keep data local. | Clearly label non-goals in UI and documentation; deprioritize future scope until validated. | If user demands one of these later, propose a targeted, gated plan with evidence review. |
-| 8. Acceptance criteria for browser validator | Evidence: The acceptance should be testable in a browser; no telemetry; alignment with evidence-based techniques. | Define validator: (a) RSVP stream 1-2 words; (b) baseline WPM measurement; (c) retention quiz; (d) 4-week pilot plan; (e) no backend; (f) privacy-preserving storage. | Build a browser-only validator that runs offline; verify texts import and retention questions function; confirm no network calls. | Consider a longer-term pilot to assess transfer to real-world texts. |
+### Risks and escalation gates
+- Escalation not required; no irreversible actions identified in the frontier for this pass. If a blocker arises that blocks run completion, escalate with a clear, limited-scope go/no-go note. | - | - |
 
-Hidden / adjacent requirements
-- Privacy: if user tests are added, consent and data minimization must be built in (Discovery Section 7). See Discovery 56-57.
-- Copyright/licensing: ensure no DRM circumvention and that user-owned texts are used with proper rights (Discovery 5, 52-57).
-- Accessibility-first design: WCAG AA basics to be baked into UI (Discovery 6).
-
-Assumption register (confidence levels)
-- A1: RSVP with 1-2 word chunks is a safe v1 starting point given parafoveal preview evidence. Confidence: High.
-- A2: Baseline WPM + comprehension checks + spaced practice will yield measurable, modest gains with small risk to comprehension. Confidence: High.
-- A3: 1-2 word chunks are preferable to 3-word chunks for initial product; 3-word preview is experimental. Confidence: Medium-High.
-- A4: All content stays in-browser; no backend for v1; no telemetry. Confidence: High.
-- A5: The MVP should be browser-only with TXT/EPUB support. Confidence: High.
-- A6: Legal/privacy constraints will limit future features (accounts, cloud sync, DRM handling). Confidence: Medium.
-
-MVP in / out
-- In MVP scope (in):
-  - In-browser RSVP viewer supporting 1-2 word chunks; optional 3-word toggle as experimental; ORP-aligned preview; baseline calibration on a sample text; retention quiz per text; local storage of progress; no backend; no accounts; no DRM circumvention; TXT/EPUB import; privacy-preserving data handling.
-- Out of MVP (not):
-  - Cloud sync, accounts, sharing, DRM handling, PDF/DRM content, non-text inputs (images, audio), or mobile app. No LLM-based quizzes in v1. (Discovery notes emphasize v1 scope and lack of trackers.)
-
-Risks and mitigations
-- Evidence gaps: direct 1 vs 2 vs 3-word chunk comparisons in live apps are not fully established; treat as exploratory (Discovery 48-51). Mitigation: implement A/B-lite tests in future v1 experiments.
-- Copyright and privacy risk: must avoid DRM circumvention and data collection without consent (Discovery 55-57). Mitigation: local storage only; opt-in tests.
-- Accessibility risk: RSVP stream must be keyboard accessible and screen-reader friendly (Discovery 6). Mitigation: build accessibility hooks early.
-- Overclaim risk: peripheral vision training must be framed as a pathway and not guaranteed speed gains (Discovery 36-39). Mitigation: include caveats in UI copy and docs.
-
-Escalation gates (with default decisions)
-- Gate 1: Content rights issue (DRM restrictions or copyrighted text) becomes blocking. Default: escalate to human to select DRM-free content; pause feature, proceed with public-domain/test-text only.
-- Gate 2: Privacy policy conflict or data collection plan conflicts with compliance. Default: pause feature until data-minimization plan approved; keep local-only by default.
-- Gate 3: Ambiguity on chunk size efficacy (1 vs 2 vs 3) hinders release. Default: treat as experimental; ship 1-2 words; include a toggle to test 3-word preview in a controlled beta.
-- Gate 4: Accessibility blockers (keyboard navigation or screen-reader not functioning). Default: halt and fix accessibility before release.
-- Gate 5: Requirement that contradicts the discovery evidence (e.g., claiming large accuracy gains impossible). Default: revert to evidence-based framing; request clarifications.
-
-Glossary (selected terms)
-- RSVP: Rapid Serial Visual Presentation – showing words in sequence.
-- ORP: Optimal Recognition Point – the character position in a word (typically left-of-center, ~1/3 in) the eye fixates first; aligning ORP at a fixed screen point reduces saccades. (Corrected by orchestrator: prior text said "Optical/Parafoveal Preview", incorrect.)
-- ParaFoveal: Visual area surrounding fixation; enabling preview.
-- Perceptual span: Reading window in which information is effectively perceived.
-- Baseline calibration: Measuring baseline WPM for a user/text to calibrate progression.
-- Metacognitive training: Strategy-based training to improve awareness and planning during reading.
-
-Candidate acceptance criteria (browser validator)
-- MVP reachable in-browser with no server: text import (TXT/EPUB), RSVP 1-2 words; ORP alignment; baseline WPM measurement; retention quiz per text; local progress tracking; no telemetry.
-- Accessibility: all controls keyboard-navigable; RSVP stream announced to screen readers; reduced-motion support.
-- Privacy: no data leaves the browser; local storage only; explicit consent for any future data collection if added.
-- Documentation: glossary and design notes included; explicit mention of evidence-based rationale.
-
-Artifact path
-- This grill result documents the investigation and is stored at: .autoforge/requirements/grilling.md
-
---- End of grilling.md
+Artifact path: .autoforge/requirements/grilling.md

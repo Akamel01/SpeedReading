@@ -1,0 +1,19 @@
+:root {
+  --folio: #F6F4EC;
+  --iron: #1A1815;
+  --marker: #FFDD33;
+  --pencil: #82858A;
+  --rule: #E3DED2;
+  --oxblood: #A93226;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: ui-monospace, "SF Mono", Menlo, monospace;
+  --font-scale: 1;
+  --text-align: center;
+  --focus-color: #5b9bd5;
+  --ease-calm: cubic-bezier(0.2, 0, 0, 1);
+  --dur-view: 180ms;
+  --dur-press: 100ms;
+  --dur-tick: 240ms;
+  --dur-status: 150ms;
+}

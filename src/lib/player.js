@@ -68,7 +68,15 @@ export function createPlayer({ chunks, wpm, now, schedule }) {
     }
     if (clock() >= nextDue) {
       const chunk = list[index];
-      emit('chunk', { index, chunk, orpParts: chunk.words.map((w) => orpParts(w.word)) });
+      // Additive field (drill support): the first few words after this chunk, for
+      // preview-zone rendering and recognition checks. Empty at stream end.
+      const lookahead = [];
+      for (let k = index + 1; k < list.length && lookahead.length < 3; k++) {
+        for (const word of list[k].words) {
+          if (lookahead.length < 3) lookahead.push(word.word);
+        }
+      }
+      emit('chunk', { index, chunk, orpParts: chunk.words.map((w) => orpParts(w.word)), lookahead });
       // Chain from the previous deadline: fixed cadence, no frame-drift accumulation.
       nextDue += nextDelay(chunk, currentWpm);
       index += 1;

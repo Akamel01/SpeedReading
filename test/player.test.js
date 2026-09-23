@@ -41,6 +41,22 @@ test('nextDelay scales with chunk word count', () => {
   assert.equal(nextDelay(chunkOf('A', 'B'), 60), 2000);
 });
 
+test('chunk events carry an additive 3-word lookahead (empty at stream end)', () => {
+  resetTime();
+  const events = [];
+  const p = createPlayer({
+    chunks: [chunkOf('A'), chunkOf('B', 'C'), chunkOf('D'), chunkOf('E'), chunkOf('F')],
+    wpm: 600, now, schedule,
+  });
+  p.on('chunk', (e) => events.push(e));
+  p.play();
+  drain();
+  assert.deepEqual(events[0].lookahead, ['B', 'C', 'D']);
+  assert.deepEqual(events[1].lookahead, ['D', 'E', 'F']);
+  assert.deepEqual(events[3].lookahead, ['F']);
+  assert.deepEqual(events[4].lookahead, []);
+});
+
 test('emits one chunk event per deadline, then end once', () => {
   resetTime();
   const events = [];

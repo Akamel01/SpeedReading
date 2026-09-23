@@ -1,8 +1,9 @@
-# Architecture Decisions — SpeedReading Trainer
+# Architecture Decisions — SpeedReading Trainer (run 002)
 
-Format: one ADR per decision (context / decision / consequence). Then module interfaces, file tree, MVP file list. Citations: `discovery` = `.autoforge/discovery/report.md`; `grilling` = `.autoforge/requirements/grilling.md`; `tracker` = `.autoforge/discovery/tracker-index.md`.
+Format: one ADR per decision (context / decision / consequence). Citations: `discovery` = `.autoforge/discovery/report.md`; `grilling` = `.autoforge/requirements/grilling.md`; `tracker` = `.autoforge/discovery/tracker-index.md`.
+Run 001 ADRs (1–10) preserved verbatim below; run 002 appends ADR-11–20 (§7) + interface freezes (§8) + data-model deltas (§9) + file ownership map (§10) + traceability (§11). Full rationale: `architecture/report.md`.
 
-## 1. ADRs
+## 1. ADRs (run 001, preserved)
 
 ### ADR-1 Stack: no-build vanilla ES modules
 - Context: ~5 views, one timer, one storage wrapper; must run offline with no backend; acceptance requires browser-validatable, no telemetry (grilling:19,62-65); orchestrator default is no-build vanilla.
@@ -64,117 +65,124 @@ Format: one ADR per decision (context / decision / consequence). Then module int
 - Alternatives: opt-in telemetry (rejected: not needed for MVP, violates default posture).
 - Consequence: can be verified at acceptance by watching the network panel (zero requests) — included in the browser walkthrough.
 
-## 2. Module boundaries
+## 2. Module boundaries (run 001, unchanged)
 
 Invariant: `src/lib/` never imports from `src/ui/`, never touches `document`/`window` at import time, never calls `fetch`. `store.js` is the only IndexedDB user; `player.js` is the only timer owner; `orp.js` is the only module with ORP constants; `zip.js` is the only ZIP parser.
 
-Touches-ready globs:
-- Pure logic + tests: `src/lib/{text,orp,player,quiz,metrics,pipeline,zip,epub}.js`, `test/{text,orp,player,quiz,metrics,pipeline,zip,epub}.test.js`
-- Storage: `src/lib/store.js`
-- Composition: `src/app.js`
-- UI: `src/ui/{library,player-view,quiz-view,dashboard,a11y}.js`
-- Shell: `index.html`, `styles/app.css`
-- Docs: `README.md`
+## 3. Interface sketch (run 001; deltas in §8)
 
-## 3. Interface sketch (function signatures)
+Unchanged from run 001 except §8 additions. `nextDelay`, `generateQuiz`/`scoreQuiz`, store `exportAll`/`importAll`, and the `a11y.js` surface are frozen.
+
+## 4. Data model (run 001; deltas in §9)
+
+Records `texts`/`quizzes`/`sessions`/`settings` per §9 base shapes. No names, emails, locations, or device identifiers are collected.
+
+## 5. Key risks (run 001, retained)
+
+EPUB correctness; a11y gate; quiz validity; timing drift/background; copyright UX; overclaim risk. Run-002 risks appended in §7 (ADR-11–20 consequences) and report.md §10.
+
+## 6. MVP file list (run 001; run-002 additions in §10)
+
+## 7. New ADRs (run 002)
+
+### ADR-11 Chapter picker: state in composition root, additive attribution
+- Context: `app.js` auto-picks first 50+ word chapter; no chapter UI; sessions/quizzes unattributed (F01).
+- Decision: chapter state stays in `app.js` (`currentChapter`); existing open/play/record path re-runs with chosen chapter. Session += `chapterIndex, chapterTitle`; quiz += `chapterIndex`. Quiz generation stays chapter-scoped. `textId` remains the dashboard grouping key; records lacking chapter fields render "unknown", never filtered.
+- Consequence: no migration, no store change, dashboard/summarize untouched. Risk carried: attribution drift → single-source `currentChapter` + jump-attribution test.
+
+### ADR-12 Quiz authoring: second mode in quiz-view, in-place + edited flag
+- Context: `edited` flag exists but always false; no authoring surface (F02). Alternatives: new view+route (rejected: doubles quiz lifecycle for one boolean); parallel copy record (rejected: same reason).
+- Decision: `quiz-view.js` gains `renderAuthoring` (edits `answer`/`accepted`, sets `edited:true`) beside `renderAnswering` (writes only `userAnswer`, never reads `accepted`). `scoreQuiz` reused unchanged.
+- Consequence: answering-DOM exclusion test (no expected strings in DOM/storage pre-save); review rule: answering path must not reference `q.answer`/`q.accepted`.
+
+### ADR-13 WPM active-time: pure `activeMs` in metrics.js
+- Context: cap logic inline in `app.js:100-107`, correct by inspection only (F03). Alternatives: clock-injected service (rejected: one caller, hypothetical seam).
+- Decision: `activeMs(events:[{at,expectedMs}])->ms`, per-gap `min(gap, expectedMs*4+250)` — today's formula, cap values frozen. `app.js` collects events per `chunk` emission (using `nextDelay` at emission time) and calls it at session end.
+- Consequence: equivalence test (uninterrupted ≡ sum of expected ± rounding) locks happy-path behavior; edge tests (pause, hidden-tab, mid-session WPM change, empty/single) pin the rest.
+
+### ADR-14 Quiz regression fixture lives in tests, blocks silently-degrading tweaks
+- Context: quiz tests use synthetic text only; real-prose quality judged once manually (F04). Alternatives: `assets/` sample (rejected: new load path, ADR-10 posture).
+- Decision: public-domain excerpt (~150–250 words) inline in `test/quiz-regression.test.js`, fixed seed, exact-output + stopword/distractor/seed-sensitivity asserts.
+- Consequence: generator changes that move the fixture fail the suite until the diff is deliberately updated and reviewed as a quality judgment.
+
+### ADR-15 E2E round-trip vs failure-hardening split (F05/F07 overlap line)
+- Context: F05 and F07 both touch export/import/store evidence; double-ownership risk.
+- Decision: F05 owns UI round-trip + dialogs (export→wipe→import with confirm-accept/dismiss, wrong-schema negative) in the browser harness. F07 owns simulated failure units (quota, abort, malformed payload) against the store contract + recovery copy via existing alerts. Quota/abort = F07 only; schema-mismatch = F05 only; both assert data-intact. No schema change.
+- Consequence: no merge collision, no duplicated failure scaffolding.
+
+### ADR-16 SR/keyboard: automate attributes, reserve ears for humans (F06)
+- Context: automation covers ARIA/focus/contrast; no human SR pass exists; ticket is `ready-for-human`.
+- Decision: automatable slice = scripted key-event walk + focus/announce assertions in `test/harness/` + walkthrough (agent-executable). Human-only slice = real SR listening + keyboard-only full loop with trap notes (F06 stays `ready-for-human`).
+- Consequence: F06 is not blocked on automation; automation never claims to verify announcement quality.
+
+### ADR-17 Perf: out-of-gate harness, fix-only-on-miss (F08)
+- Context: import-time tokenize/chunk cost unmeasured for 130k-word books. Alternatives: in-suite perf test (rejected: slows `node --test`); workers/virtualization now (rejected: speculative without a miss).
+- Decision: standalone node script (explicit run) + in-browser import timing via walkthrough harness. Initial budgets: Node < 2s, browser import < 3s with responsive first paint, chunk-array heap < 100MB — verdict recorded in-ticket. Miss → fix with before/after numbers; pass → zero code change.
+- Consequence: permits the no-code outcome; `chunk`/`tokenize` contracts frozen unless a miss forces change.
+
+### ADR-18 Span drill: mode in player-view, gate-5 copy guardrails (F10)
+- Context: span work exists as prose framing only; evidence grade moderate → ship framing, not promises. Alternatives: new view + drill module (rejected: one consumer, hypothetical seam).
+- Decision: drill mode inside `player-view.js` reusing chunk/ORP/engine; preview width varies, anchor fixed; recognition checks reuse scoring semantics; sessions carry optional `drill:'span'` (dashboard/summarize unchanged). Copy rule: no speed-gain promises anywhere (grep-blocked: `faster`, `boost`, `double`, `improve your speed`); drill comprehension labeled as recognition checks with `drill` flag visible.
+- Consequence: overclaim gate stays green by construction; no new data pipeline.
+
+### ADR-19 Redesign build: frozen spec + B interfaces + sequential S-chain
+- Context: 10 tickets (RB1–RB3 parallel, RS1–RS7 chained) landing a frozen redesign without behavior regressions.
+- Decision: spec authority = `design/tokens.md` + `design/architecture.md` + `design/pass-3-*.md` (pass-3 wins conflicts, tokens.md wins values). B interfaces frozen: `h(tag,attrs,...children)` in `src/ui/h.js`; `splitSentences(text)->string[]` in `src/lib/text.js`; `sessionTicks(sessions)->{wpm,comprehensionPct,best}[]` in `src/lib/metrics.js`; `styles/tokens.css` (`:root` only) + `styles/app.css` (consumes only). S-chain strictly sequential per `blocked_by`; each ticket owns named `app.css` sections only (§10). Rejected (upheld): player-view split, settings module, router module.
+- Consequence: `h()` earns its seam (4 view adapters, S2–S5); splitter/ticks earn theirs (SR mode + rail/strip + tests). No ADR-1/6/7 conflicts.
+
+### ADR-20 Release: verify-then-push, Pages timing
+- Context: push to `main` auto-redeploys Pages; S7 is verification + release (RS7).
+- Decision: push only after suite green + extended e2e green + independent review APPROVED; live-URL check after push; zero feature work in S7.
+- Consequence: deploy-timing risk contained; S7 stays a gate, not a work ticket.
+
+## 8. Module interface freezes (run 002 deltas)
 
 ```js
-// src/lib/text.js
-/** @typedef {{word:string, trail:string}} Token  // trail = punctuation/spaces following the word */
-tokenize(text) -> Token[]
-chunk(tokens, {size=2, longWordChars=14}) -> Chunk[]   // Chunk = {words:Token[], text:string}
-// breaks: paragraph end, sentence-final punctuation, word.length > longWordChars
+// src/lib/metrics.js  (ADR-13, ADR-19)
+activeMs(events: [{at:number, expectedMs:number}]) -> number  // per-gap min(gap, expectedMs*4+250); [] -> 0
+sessionTicks(sessions) -> [{wpm, comprehensionPct, best}]     // best = argmax wpm, ties -> first
 
-// src/lib/orp.js  — single source of truth for the ORP rule
-orpIndex(word) -> number           // 1-char:0; 2-5:1; 6-9:2; 10-13:3; 14+:4 (clamped to length-1)
-orpParts(word) -> {left:string, orp:string, right:string}
+// src/lib/text.js  (ADR-19)
+splitSentences(text: string) -> string[]  // abbreviation-aware (Mr/Mrs/Ms/Dr/St…); '' -> []
 
-// src/lib/player.js — no DOM inside; scheduler and clock are injected
-createPlayer({chunks, wpm, now=performance.now, schedule=rAF, adaptiveBetweenSessions=false})
-  -> {play, pause, toggle, seek(i), step(+1|-1), setWpm(n), getState, on(event, cb)}
-// events: 'chunk'{index, chunk, orpParts}, 'end', 'state'{playing, index, wpm}
-nextDelay(chunk, wpm) -> ms        // pure; exported for tests: 60000/wpm * (chunk.words.length===0?1:1)
+// src/ui/h.js  (ADR-19, new module)
+h(tag: string, attrs?: {class?: string, on?: {[event]: handler}, ...attr}, ...children) -> Element
 
-// src/lib/pipeline.js
-normalizeTxt(raw) -> string                          // BOM strip, \r\n -> \n, collapse blank runs
-chapterize(text) -> Chapter[]                        // heading heuristics (CHAPTER N / §), fallback 1 chapter
-ingest({name, arrayBuffer}) -> Promise<{title, source:'txt'|'epub', chapters:Chapter[]}>
-//   dispatches on extension; .txt -> normalize+chapterize; .epub -> epubToChapters; else UnsupportedFormatError
+// src/ui/quiz-view.js  (ADR-12)
+renderAnswering(quiz)  // MUST NOT reference q.answer / q.accepted (tested)
+renderAuthoring(quiz)  // MAY edit answer/accepted; sets edited:true on save
 
-// src/lib/zip.js
-readZip(arrayBuffer) -> Promise<Map<string, Uint8Array>>  // throws UnsupportedFormatError on zip64/encrypted/method!=0,8
-// src/lib/epub.js
-epubToChapters(arrayBuffer) -> Promise<{title, chapters:Chapter[]}>  // container.xml -> OPF -> spine -> XHTML -> text
-
-// src/lib/quiz.js
-generateQuiz(text, {n=5, seed, minSentenceWords=8, maxSentenceWords=40})
-  -> Question[]   // {id, kind:'cloze', sentence, answer, accepted:string[], candidates:string[]}
-scoreQuiz(questions, answers) -> {correct, total, pct, perQuestion:boolean[]}
-normalizeAnswer(s) -> string       // lowercase, trim, strip surrounding punctuation, collapse spaces
-
-// src/lib/metrics.js
-wpm(wordCount, elapsedMs) -> number
-comprehensionPct(correct, total) -> number
-summarize(sessions) -> {sessions:n, bestWpm, avgWpm, avgComprehension, trend:'up'|'flat'|'down'}
-suggestNextWpm(lastWpm, lastComprehensionPct) -> number   // ADR-9 rules: >=80 -> +10%, <60 -> -10%
-
-// src/lib/store.js — only IndexedDB user; all functions async
-openStore() -> Promise<Store>
-Store: {put(store, rec), get(store, id), getAll(store), del(store, id), exportAll(), importAll(json)}
-// DB 'speedread' v1; stores texts, quizzes, sessions, settings (keyPath:'id'); export {schemaVersion:1,...}
-
-// src/ui/a11y.js
-prefersReducedMotion() -> boolean
-announce(message, {politeness='polite'}) -> void     // uses one shared live region
-focusMain() -> void
+// styles/  (ADR-19)
+styles/tokens.css  // :root custom properties ONLY (grep-enforced); values frozen in design/tokens.md
+styles/app.css     // consumes tokens; defines no new custom properties (until S-chain owns sections)
 ```
 
-## 4. Data model (records in IndexedDB)
+Frozen unchanged: `tokenize/chunk`, `orpIndex/orpParts`, `createPlayer/nextDelay`, `generateQuiz/scoreQuiz/normalizeAnswer`, `wpm/comprehensionPct/summarize/suggestNextWpm`, store `exportAll/importAll` shape (`schemaVersion:1`), `a11y.js` surface.
+
+## 9. Data-model deltas (additive only, no migration, DB v1 unchanged)
 
 ```js
-// texts
-{ id, title, source:'txt'|'epub', importedAt, chapters:[{index, title, text, wordCount}], totalWords }
-
-// quizzes
-{ id, textId, createdAt, seed, questions:[{id, kind:'cloze', sentence, answer, accepted[], candidates[]}],
-  edited:boolean }
-
-// sessions  (baseline is a session with kind:'baseline' — no separate record)
-{ id, kind:'baseline'|'read', textId, chunkSize:1|2|3, targetWpm, startedAt, endedAt,
-  wordCount, elapsedMs, wpm, quizId:null|string, correct:null|number, total:null|number, comprehensionPct:null|number }
-
-// settings (single record id:'settings')
-{ id:'settings', wpm:300, chunkSize:2, orpEnabled:true, adaptiveSuggestions:true,
-  reducedMotion:'auto'|'on'|'off', fontScale:1, textAlign:'center' }
+// sessions += (ADR-11, ADR-18)
+{ ..., chapterIndex?: number, chapterTitle?: string, drill?: 'span' }
+// quizzes += (ADR-11)
+{ ..., chapterIndex?: number }   // edited:boolean already exists (ADR-12 uses it)
 ```
+Missing fields ≡ pre-chapter/undrilled records; readers must default, never filter. Dashboard grouping key stays `textId`.
 
-No names, emails, locations, or device identifiers are collected. The only user content is the imported text and reading results, all local.
+## 10. File ownership map (run 002)
 
-## 5. Key risks (carried from report.md §4)
+- F01: `src/app.js` (chapter select + attribution), library/player views (list control only).
+- F02: `src/ui/quiz-view.js` (authoring mode) + answering-exclusion test. No new view/route/store.
+- F03: `src/lib/metrics.js` (+`test/metrics.test.js`); `src/app.js` call-site only.
+- F04: `test/quiz-regression.test.js` only. No app code.
+- F05: browser harness + walkthrough extension only. No app/schema change.
+- F06: `test/harness/*` scripted checks (agent) + human pass (unchanged ticket). No app redesign.
+- F07: browser-context failure tests only; reuses existing alerts. No new dialogs.
+- F08: standalone perf script + walkthrough timing. Code change only on measured miss.
+- F10: `src/ui/player-view.js` (drill mode) + copy; session `drill` flag producer in `app.js`.
+- RB1: `src/lib/text.js` + `src/lib/metrics.js` + tests. RB2: `src/ui/h.js` + tests, zero view edits. RB3: `styles/tokens.css` + `index.html` link order, zero visual change.
+- RS1→RS6 sequential; `app.css` section ownership: S1 header/nav, S2 library, S3 player+rail+setup, S4 quiz, S5 dashboard, S6 motion/responsive. S7: verification + push only.
 
-1. EPUB correctness (high) — gate: real Gutenberg file + fixture tests; cuttable per ADR-3.
-2. A11y gate (high) — dual mode per ADR-7; escalation gate 4.
-3. Quiz validity (medium) — editable, seeded, labeled per ADR-4.
-4. Timing drift/background (medium) — wall-clock + visibility pause per ADR-5.
-5. Copyright UX (medium) — copy + no DRM code path per ADR-10.
-6. Overclaim risk (medium) — peripheral/perceptual-span framed as calibration path (report.md §5).
+## 11. Ticket traceability (every frontier ticket → decision or no-change line)
 
-## 6. MVP file list (build order)
-
-1. `index.html`, `styles/app.css`
-2. `src/lib/text.js`, `test/text.test.js`
-3. `src/lib/orp.js`, `test/orp.test.js`
-4. `src/lib/player.js`, `test/player.test.js`
-5. `src/lib/quiz.js`, `test/quiz.test.js`
-6. `src/lib/metrics.js`, `test/metrics.test.js`
-7. `src/lib/store.js`
-8. `src/lib/pipeline.js`, `test/pipeline.test.js`
-9. `src/ui/a11y.js`, `src/ui/library.js`
-10. `src/ui/player-view.js`
-11. `src/ui/quiz-view.js`, `src/ui/dashboard.js`
-12. `src/app.js`
-13. `src/lib/zip.js`, `src/lib/epub.js`, `test/zip.test.js`, `test/epub.test.js` (last; cuttable at its gate)
-14. `README.md` (run command, privacy statement, glossary, evidence notes)
-15. `assets/sample.txt` (public-domain calibration passage)
-
-No build artifacts, no package.json required for the app (tests run via `node --test test/`). No plugin/hooks system, no configuration layer beyond the `settings` record, no interfaces with a single speculative implementation.
+F01→ADR-11; F02→ADR-12; F03→ADR-13; F04→ADR-14; F05→ADR-15 (no arch change: harness-only); F06→ADR-16 (no arch change: split only); F07→ADR-15 (no arch change: tests + existing alerts); F08→ADR-17 (no arch change unless miss); F10→ADR-18; RB1/RB2/RB3→ADR-19; RS1–RS6→ADR-19; RS7→ADR-20. No contradiction with ADR-1 (no build/deps: two link tags, no bundler; perf script is plain node) or ADR-10 (zero network, test-only fixtures, no telemetry).

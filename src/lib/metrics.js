@@ -12,6 +12,30 @@ export function wpm(wordCount, elapsedMs) {
   return value;
 }
 
+// Active reading time in milliseconds across a sequence of chunk emission events.
+// Events: [{ at: number, expectedMs: number }, ...]
+// Returns 0 for empty or insufficient data. For each consecutive pair,
+// add min(gap, previousEvent.expectedMs * 4 + 250).
+export function activeMs(events) {
+  if (!Array.isArray(events) || events.length <= 1) return 0;
+  let sum = 0;
+  for (let i = 1; i < events.length; i++) {
+    const prev = events[i - 1];
+    const cur = events[i];
+    const atPrev = prev?.at;
+    const atCur = cur?.at;
+    const expPrev = prev?.expectedMs;
+    if (typeof atPrev !== 'number' || typeof atCur !== 'number' || typeof expPrev !== 'number') {
+      continue;
+    }
+    const gap = atCur - atPrev;
+    const cap = expPrev * 4 + 250;
+    const contribution = Math.min(gap, cap);
+    if (Number.isFinite(contribution)) sum += contribution;
+  }
+  return sum;
+}
+
 // Comprehension percentage: 0-100, with total === 0 producing 0.
 export function comprehensionPct(correct, total) {
   if (typeof correct !== 'number' || typeof total !== 'number') return 0;
@@ -64,6 +88,24 @@ export function summarize(sessions) {
     avgComprehension,
     trend,
   };
+}
+
+// Per-session tick data: derive a best flag per session without mutating input.
+// Output: [{ wpm, comprehensionPct: number|null, best: boolean }, ...]
+export function sessionTicks(sessions) {
+  if (!Array.isArray(sessions) || sessions.length === 0) return [];
+  const out = sessions.map((s) => ({
+    wpm: s?.wpm,
+    comprehensionPct:
+      s && typeof s?.comprehensionPct === 'number' ? s.comprehensionPct : null,
+    best: false,
+  }));
+  const wpmValues = out.map((o) => o.wpm);
+  const maxWpm = Math.max(...wpmValues.filter((v) => typeof v === 'number'));
+  if (!Number.isFinite(maxWpm)) return out;
+  const firstIndex = wpmValues.indexOf(maxWpm);
+  if (firstIndex >= 0) out[firstIndex].best = true;
+  return out;
 }
 
 // Suggest next target WPM based on last session's results.

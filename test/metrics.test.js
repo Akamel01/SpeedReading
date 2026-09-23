@@ -2,7 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { wpm, comprehensionPct, summarize, suggestNextWpm } from '../src/lib/metrics.js';
+import { wpm, comprehensionPct, summarize, suggestNextWpm, sessionTicks, activeMs } from '../src/lib/metrics.js';
 
 test('wpm basic', () => {
   assert.equal(wpm(300, 60000), 300);
@@ -74,4 +74,80 @@ test('purity: input not mutated', () => {
   summarize(sessions);
   const after = JSON.stringify(sessions);
   assert.equal(before, after);
+});
+
+// New tests for activeMs
+test('activeMs empty', () => {
+  const res = activeMs([]);
+  assert.equal(res, 0);
+});
+
+test('activeMs single event -> 0', () => {
+  const res = activeMs([{ at: 0, expectedMs: 100 }]);
+  assert.equal(res, 0);
+});
+
+test('activeMs simple gap sums', () => {
+  const events = [
+    { at: 0, expectedMs: 100 },
+    { at: 50, expectedMs: 100 },
+  ];
+  const res = activeMs(events);
+  // gap 50, cap = 100*4+250 = 650 -> min = 50
+  assert.equal(res, 50);
+});
+
+test('activeMs cap for large gaps', () => {
+  const events = [
+    { at: 0, expectedMs: 100 },
+    { at: 1000, expectedMs: 100 },
+  ];
+  const res = activeMs(events);
+  // gap 1000, cap 650 -> 650
+  assert.equal(res, 650);
+});
+
+test('activeMs multiple gaps', () => {
+  const events = [
+    { at: 0, expectedMs: 100 },
+    { at: 50, expectedMs: 100 },
+    { at: 900, expectedMs: 80 },
+  ];
+  const res = activeMs(events);
+  // gaps: 50 (min 50) + 850 (cap 100*4+250 = 650) => 50 + 650 = 700
+  assert.equal(res, 700);
+});
+
+// New tests for sessionTicks
+test('sessionTicks marks first max wpm as best', () => {
+  const sessions = [
+    { wpm: 100 },
+    { wpm: 150 },
+    { wpm: 150 }
+  ];
+  const ticks = sessionTicks(sessions);
+  const expected = [
+    { wpm: 100, comprehensionPct: null, best: false },
+    { wpm: 150, comprehensionPct: null, best: true },
+    { wpm: 150, comprehensionPct: null, best: false }
+  ];
+  assert.deepStrictEqual(ticks, expected);
+});
+
+test('sessionTicks handles comprehensionPct and missing values', () => {
+  const sessions = [
+    { wpm: 80, comprehensionPct: 60 },
+    { wpm: 90 }
+  ];
+  const ticks = sessionTicks(sessions);
+  const expected = [
+    { wpm: 80, comprehensionPct: 60, best: false },
+    { wpm: 90, comprehensionPct: null, best: true }
+  ];
+  assert.deepStrictEqual(ticks, expected);
+});
+
+test('sessionTicks empty input', () => {
+  const ticks = sessionTicks([]);
+  assert.deepStrictEqual(ticks, []);
 });

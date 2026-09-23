@@ -1,7 +1,7 @@
 // Lightweight tests for lib/text.js using Node's built-in test runner
 import assert from 'assert';
 import { test } from 'node:test';
-import { tokenize, chunk } from '../src/lib/text.js';
+import { tokenize, chunk, splitSentences } from '../src/lib/text.js';
 
 test('tokenize simple sentence without boundary', () => {
   const toks = tokenize('Hi!');
@@ -65,4 +65,35 @@ test('leading blank lines produce no empty chunks (reviewer fix)', () => {
   const ch = chunk(toks, { size: 2 });
   assert.strictEqual(ch.length, 1);
   assert.strictEqual(ch[0].words[0].word, 'Hi');
+});
+
+// New tests for splitSentences with abbreviation awareness
+test('splitSentences basic splitting', () => {
+  const text = 'Hello world. This is a test.';
+  const res = splitSentences(text);
+  assert.deepStrictEqual(res, ['Hello world.', 'This is a test.']);
+});
+
+test('splitSentences abbreviation does not split on Dr./Mr.', () => {
+  const text = 'Dr. Smith went home. He waited.';
+  const res = splitSentences(text);
+  assert.deepStrictEqual(res, ['Dr. Smith went home.', 'He waited.']);
+});
+
+test('splitSentences complex with Dr. inside sentence', () => {
+  const text = 'This is a test. Dr. Who is here. End.';
+  const res = splitSentences(text);
+  // "Dr." must not split (capitalised word follows); the period after "here" must.
+  assert.deepStrictEqual(res, ['This is a test.', 'Dr. Who is here.', 'End.']);
+});
+
+test('splitSentences empty input', () => {
+  const res = splitSentences('');
+  assert.deepStrictEqual(res, []);
+});
+
+test('splitSentences multi-sentence with ? and !', () => {
+  const text = 'One? Two! Three.';
+  const res = splitSentences(text);
+  assert.deepStrictEqual(res, ['One?', 'Two!', 'Three.']);
 });

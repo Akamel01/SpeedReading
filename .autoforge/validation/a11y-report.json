@@ -1,0 +1,37 @@
+{
+  "ranAt": "2026-09-23T12:48:43.016Z",
+  "results": [
+    {
+      "step": "keyboard: trusted Space toggles playback",
+      "ok": true
+    },
+    {
+      "step": "keyboard: arrows/+/- handled, single view kept",
+      "ok": true
+    },
+    {
+      "step": "announce: live region fires at sentence boundaries only",
+      "ok": true
+    },
+    {
+      "step": "focus: trusted Tab stops are labelled controls with visible outline",
+      "ok": true
+    },
+    {
+      "step": "keyboard: Esc exits player to library",
+      "ok": true
+    },
+    {
+      "step": "reduced-motion: manual sentence mode, no autoplay",
+      "ok": true
+    },
+    {
+      "step": "contrast: body text >= 4.5:1",
+      "ok": true
+    },
+    {
+      "step": "page: zero uncaught page exceptions",
+      "ok": true
+    }
+  ]
+}

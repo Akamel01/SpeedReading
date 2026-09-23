@@ -1,296 +1,616 @@
 {
-  "schemaVersion": "1.1",
-  "run": "speedreading-001",
-  "revision": "plan v1.1 — critic findings #1-#10 incorporated by orchestrator (see .autoforge/reviews/plan.md)",
-  "objective": "Build an in-browser speed-reading trainer (no build, vanilla ES modules, static site) that presents books/texts as 1-3 word RSVP chunks with ORP alignment, baseline calibration, retention quizzes, and local IndexedDB progress tracking; no backend, no telemetry, no DRM handling. Scope authority: tracker-index.md has zero entries; objective fallback is the sole scope authority.",
-  "sourceArtifacts": [
-    ".autoforge/discovery/tracker-index.md",
-    ".autoforge/requirements/grilling.md",
-    ".autoforge/architecture/report.md",
-    ".autoforge/architecture/decisions.md",
-    ".autoforge/plans/plan.md",
-    ".autoforge/reviews/plan.md"
-  ],
-  "invariants": [
-    "src/lib/* never imports src/ui/*, never touches document/window at import time, never calls fetch",
-    "store.js is the only IndexedDB user",
-    "player.js is the only module owning a timer; app.js (not the engine) owns the document visibilitychange listener that calls player.pause()",
-    "orp.js is the only module with ORP constants",
-    "zip.js is the only ZIP parser",
-    "pipeline.js reaches EPUB via dynamic import; a missing epub.js becomes UnsupportedFormatError('EPUB support unavailable'), never ERR_MODULE_NOT_FOUND",
-    "DOM contract pinned in plan.md section 1b; ORP anchor contract = grid 1fr auto 1fr; views may add classes only, never ids; only shell edits index.html",
-    "package.json is exactly {\"type\":\"module\"} (no deps/scripts) and is owned by shell"
-  ],
-  "modules": [
-    {
-      "id": "shell",
-      "objective": "Static presentation foundation: HTML shell implementing pinned DOM contract, CSS tokens (contrast >=4.5:1, focus-visible, --font-scale/--text-align vars, .rsvp-stage grid anchor), a11y primitives, and minimal package.json.",
-      "inputs": ["decisions.md ADR-7", "decisions.md section 6 item 1", "plan.md section 1b DOM contract"],
-      "outputs": ["index.html", "styles/app.css", "src/ui/a11y.js", "package.json"],
-      "touches": ["index.html", "styles/app.css", "src/ui/a11y.js", "package.json"],
-      "blocked_by": [],
-      "acceptance": "Serve with `python3 -m http.server 8080`; DOM contract ids present (#app, #view-library, #view-player, #view-quiz, #view-dashboard, #live-region, .rsvp-stage/.rsvp-left/.rsvp-orp/.rsvp-right styles), no console errors; a11y.announce() writes to #live-region; prefersReducedMotion() reflects OS toggle; keyboard tab reaches all shell controls; package.json content exactly {\"type\":\"module\"}.",
-      "skills": ["frontend-design-direction", "accessibility", "frontend-a11y"],
-      "reviewer": "required: DOM contract + WCAG 2.2 AA",
-      "cuttable": false
-    },
-    {
-      "id": "lib-text",
-      "objective": "tokenize() + chunk() per ADR-8 policy (1-3 words, default 2, no paragraph merge, sentence-final split, >14-char word alone).",
-      "inputs": ["decisions.md ADR-8", "decisions.md section 3 text.js"],
-      "outputs": ["src/lib/text.js", "test/text.test.js"],
-      "touches": ["src/lib/text.js", "test/text.test.js"],
-      "blocked_by": [],
-      "acceptance": "`node --test test/text.test.js` green: paragraph boundary never merged; sentence-final punctuation ends chunk; word >14 chars own chunk; size 1/2/3; default 2; trail preserved.",
-      "skills": ["tdd-workflow"],
-      "reviewer": "required: chunk policy correctness (ADR-8)",
-      "cuttable": false
-    },
-    {
-      "id": "lib-orp",
-      "objective": "ORP rule as single source of truth: orpIndex() table 1:0, 2-5:1, 6-9:2, 10-13:3, 14+:4 clamped; orpParts().",
-      "inputs": ["decisions.md section 3 orp.js", "architecture/report.md section 5 glossary"],
-      "outputs": ["src/lib/orp.js", "test/orp.test.js"],
-      "touches": ["src/lib/orp.js", "test/orp.test.js"],
-      "blocked_by": [],
-      "acceptance": "`node --test test/orp.test.js` green for lengths 1,2,5,6,9,10,13,14,20 including clamp; left+orp+right concatenation equals input.",
-      "skills": ["tdd-workflow"],
-      "reviewer": "required",
-      "cuttable": false
-    },
-    {
-      "id": "lib-quiz",
-      "objective": "Seeded heuristic cloze generation (deterministic per seed, distractors from same text) and normalization-tolerant scoring.",
-      "inputs": ["decisions.md ADR-4", "decisions.md section 3 quiz.js"],
-      "outputs": ["src/lib/quiz.js", "test/quiz.test.js"],
-      "touches": ["src/lib/quiz.js", "test/quiz.test.js"],
-      "blocked_by": [],
-      "acceptance": "`node --test test/quiz.test.js` green: same seed gives identical quiz; different seed differs; n=5; accepted[] includes the blanked token; normalizeAnswer handles case/punctuation/whitespace; scoreQuiz returns correct/total/pct/perQuestion; total=0 yields pct 0 (not NaN).",
-      "skills": ["tdd-workflow"],
-      "reviewer": "required: scoring correctness",
-      "cuttable": false
-    },
-    {
-      "id": "lib-metrics",
-      "objective": "Pure metrics: wpm, comprehensionPct, summarize trend, suggestNextWpm between-session rules (>=80 +10%, <60 -10%, else hold).",
-      "inputs": ["decisions.md ADR-9", "decisions.md section 3 metrics.js"],
-      "outputs": ["src/lib/metrics.js", "test/metrics.test.js"],
-      "touches": ["src/lib/metrics.js", "test/metrics.test.js"],
-      "blocked_by": [],
-      "acceptance": "`node --test test/metrics.test.js` green: wpm(300,60000)=300; elapsedMs=0 guarded; comprehensionPct boundaries; trend up/flat/down; suggestNextWpm rules; all functions pure (no mutation of input).",
-      "skills": ["tdd-workflow"],
-      "reviewer": "required",
-      "cuttable": false
-    },
-    {
-      "id": "lib-store",
-      "objective": "Thin async IndexedDB wrapper: DB speedread v1, stores texts/quizzes/sessions/settings (keyPath id), export/import with schemaVersion validation.",
-      "inputs": ["decisions.md ADR-2", "decisions.md section 3 store.js", "decisions.md section 4 data model"],
-      "outputs": ["src/lib/store.js"],
-      "touches": ["src/lib/store.js"],
-      "blocked_by": [],
-      "acceptance": "Browser console on served app: openStore() then put/get/getAll/del round-trip on each store; exportAll() returns {schemaVersion:1,texts,quizzes,sessions,settings}; importAll rejects wrong schemaVersion with a documented error object and otherwise replaces data (user confirm dialog is app/ui-library's job, not store's); put rejects on quota error with readable message (no silent drop). Grep: no other file references indexedDB.",
-      "skills": ["frontend-patterns", "security-review"],
-      "reviewer": "required: sole-IDB-user invariant",
-      "cuttable": false
-    },
-    {
-      "id": "epub-import",
-      "objective": "Minimal ZIP central-directory reader (method 0/8, DecompressionStream deflate-raw) + EPUB container/OPF/spine/XHTML text extraction; explicit UnsupportedFormatError otherwise. Module may span 2 child sessions (zip then epub) against frozen readZip signature.",
-      "inputs": ["decisions.md ADR-3", "decisions.md section 3 zip.js/epub.js"],
-      "outputs": ["src/lib/zip.js", "src/lib/epub.js", "test/zip.test.js", "test/epub.test.js", "test/helpers/zip-fixture.js"],
-      "touches": ["src/lib/zip.js", "src/lib/epub.js", "test/zip.test.js", "test/epub.test.js", "test/helpers/zip-fixture.js"],
-      "blocked_by": [],
-      "acceptance": "`node --test test/zip.test.js test/epub.test.js` green with in-file node:zlib fixture: method 0 and 8 both inflate; chapter titles in spine order; markup stripped; zip64/encrypted/other-method/non-UTF-8 throw UnsupportedFormatError with readable reason; never silent empty/garbled output. Real-book gate deferred to verify-acceptance step 2.",
-      "skills": ["tdd-workflow", "error-handling"],
-      "reviewer": "required: ADR-3 high risk",
-      "cuttable": true
-    },
-    {
-      "id": "docs-assets",
-      "objective": "README (run command, Node >=22.7 note, privacy/no-network statement, corrected glossary, evidence notes, non-goals, DRM/rights notice, 4-week pilot plan) and a public-domain calibration sample text.",
-      "inputs": ["grilling.md acceptance criteria", "decisions.md ADR-10", "architecture/report.md section 5"],
-      "outputs": ["README.md", "assets/sample.txt"],
-      "touches": ["README.md", "assets/sample.txt"],
-      "blocked_by": [],
-      "acceptance": "README documents `python3 -m http.server 8080` + Node >=22.7 for tests, zero network/telemetry/accounts posture, ORP = Optimal Recognition Point, evidence notes, non-goals, user-rights/DRM notice, and 4-week pilot plan (baseline, 3 sessions/week with retention quiz, week-4 re-baseline; comprehension trend matters more than WPM); assets/sample.txt public domain, UTF-8, 300-500 words.",
-      "skills": ["documentation-lookup", "article-writing"],
-      "reviewer": "required: overclaim gate 5",
-      "cuttable": false
-    },
-    {
-      "id": "lib-player",
-      "objective": "DOM-free timing engine: rAF + wall-clock deadline, chunk/end/state events, injectable now/schedule (defaults performance.now/requestAnimationFrame), seek/step/setWpm; exposes pause() as the visibility hook (app owns the listener).",
-      "inputs": ["decisions.md ADR-5", "decisions.md ADR-9", "decisions.md section 3 player.js", "src/lib/orp.js"],
-      "outputs": ["src/lib/player.js", "test/player.test.js"],
-      "touches": ["src/lib/player.js", "test/player.test.js"],
-      "blocked_by": ["lib-orp"],
-      "acceptance": "`node --test test/player.test.js` green with fake clock: nextDelay(chunk,wpm)=chunk.words.length*60000/wpm (1-word and 2-word cases); one chunk event per deadline with no accumulated drift; end fires once; pause stops emissions; seek/step clamp; setWpm applies from next chunk only; getState accurate; pause() asserted to stop the scheduler and not resume until play() [orchestrator fix: WPM accuracy for multi-word chunks].",
-      "skills": ["tdd-workflow", "latency-critical-systems"],
-      "reviewer": "required: timing correctness",
-      "cuttable": false
-    },
-    {
-      "id": "lib-pipeline",
-      "objective": "TXT normalize (BOM, CRLF, blank runs), chapterize heuristics with single-chapter fallback, ingest() dispatch with dynamic EPUB import and friendly error when epub.js is absent.",
-      "inputs": ["decisions.md section 3 pipeline.js", "decisions.md ADR-3", "src/lib/text.js"],
-      "outputs": ["src/lib/pipeline.js", "test/pipeline.test.js"],
-      "touches": ["src/lib/pipeline.js", "test/pipeline.test.js"],
-      "blocked_by": ["lib-text"],
-      "acceptance": "`node --test test/pipeline.test.js` green: normalization cases; CHAPTER N / section-mark detection and one-chapter fallback; .txt dispatch returns {title, source:'txt', chapters}; unknown extension throws UnsupportedFormatError; module imports cleanly with epub.js absent and .epub ingest rejects with UnsupportedFormatError('EPUB support unavailable'), not ERR_MODULE_NOT_FOUND (critic fix #7).",
-      "skills": ["tdd-workflow"],
-      "reviewer": "required",
-      "cuttable": false
-    },
-    {
-      "id": "ui-library",
-      "objective": "Import/list/open/delete/export-import view; copyright + DRM-unsupported notice; callbacks only (no store access); owns its harness page.",
-      "inputs": ["plan.md section 1a UI contract", "plan.md section 1b DOM contract", "grilling.md Q5"],
-      "outputs": ["src/ui/library.js", "test/harness/library.html"],
-      "touches": ["src/ui/library.js", "test/harness/library.html"],
-      "blocked_by": ["shell"],
-      "acceptance": "Open test/harness/library.html on the served app with stub callbacks: file input calls onImportFile(file); render(texts) shows title/source/word count; open/delete callbacks receive correct id; export/import buttons call callbacks; rights notice visible; full keyboard operation; focus returns to list after delete.",
-      "skills": ["frontend-patterns", "frontend-a11y"],
-      "reviewer": "required",
-      "cuttable": false
-    },
-    {
-      "id": "ui-player-view",
-      "objective": "RSVP renderer with ORP-aligned fixed anchor (grid 1fr auto 1fr), keyboard map (Space/arrows/+/-/Esc), sentence-boundary announcements, SR/reduced-motion manual-advance mode, and settings controls (fontScale, textAlign, orpEnabled, chunkSize incl. experimental 3, reducedMotion override) reporting via onSettingsChange.",
-      "inputs": ["plan.md section 1a/1b", "decisions.md ADR-7", "architecture/report.md section 2 option 6"],
-      "outputs": ["src/ui/player-view.js", "test/harness/player-view.html"],
-      "touches": ["src/ui/player-view.js", "test/harness/player-view.html"],
-      "blocked_by": ["shell", "lib-player", "lib-orp"],
-      "acceptance": "Open test/harness/player-view.html with stub player: ORP character at fixed x at --font-scale 1 and 1.5; Space/arrow/plus-minus/Esc per key map; visual region aria-hidden, role=status announces at sentence boundaries only; prefers-reduced-motion defaults to manual sentence mode via aria-live polite; settings controls call onSettingsChange and renderSettings reflects persisted values; consumes injected player instance, creates no timer.",
-      "skills": ["frontend-a11y", "accessibility", "motion-foundations"],
-      "reviewer": "required: a11y gate 4",
-      "cuttable": false
-    },
-    {
-      "id": "ui-quiz-view",
-      "objective": "Editable cloze quiz view (split from former ui-quiz-dashboard per critic fix #8).",
-      "inputs": ["plan.md section 1a/1b", "decisions.md ADR-4", "grilling.md Q2"],
-      "outputs": ["src/ui/quiz-view.js", "test/harness/quiz-view.html"],
-      "touches": ["src/ui/quiz-view.js", "test/harness/quiz-view.html"],
-      "blocked_by": ["shell", "lib-quiz"],
-      "acceptance": "Open test/harness/quiz-view.html: 5 cloze items with auto-generated/edit-before-use label; submit calls onSave with edited questions; cancel calls onCancel; empty state renders clean.",
-      "skills": ["frontend-patterns", "frontend-a11y", "accessibility"],
-      "reviewer": "required",
-      "cuttable": false
-    },
-    {
-      "id": "ui-dashboard",
-      "objective": "Progress dashboard: WPM with comprehension, trend, experimental label for 3-word sessions, explicit-accept WPM suggestion (split per critic fix #8).",
-      "inputs": ["plan.md section 1a/1b", "decisions.md ADR-9", "grilling.md Q4"],
-      "outputs": ["src/ui/dashboard.js", "test/harness/dashboard.html"],
-      "touches": ["src/ui/dashboard.js", "test/harness/dashboard.html"],
-      "blocked_by": ["shell", "lib-metrics"],
-      "acceptance": "Open test/harness/dashboard.html: table shows WPM and comprehension from same session, trend badge, suggestion button requiring explicit accept calling onAcceptWpm(n); experimental label on 3-word sessions; empty state renders clean.",
-      "skills": ["frontend-patterns", "frontend-a11y", "accessibility"],
-      "reviewer": "required",
-      "cuttable": false
-    },
-    {
-      "id": "app",
-      "objective": "Composition root: owns store + player instances, visibilitychange listener calling player.pause(), routes the four views, wires import/play/quiz/dashboard flows, settings persistence, and session records.",
-      "inputs": ["all frozen interfaces", "plan.md section 1b"],
-      "outputs": ["src/app.js"],
-      "touches": ["src/app.js"],
-      "blocked_by": ["shell", "lib-text", "lib-orp", "lib-player", "lib-quiz", "lib-metrics", "lib-store", "lib-pipeline", "epub-import", "ui-library", "ui-player-view", "ui-quiz-view", "ui-dashboard"],
-      "acceptance": "`node --test test/` all green AND browser seams check: import assets/sample.txt, baseline session recorded with kind:'baseline', open player, exit, reload page and text/settings/sessions persist; exactly one #view-* visible at a time; tab-switch mid-playback pauses via visibilitychange and never fast-forwards; JSON import calls store.importAll only after user confirm. Full walkthrough is verify-acceptance's job.",
-      "skills": ["frontend-patterns", "error-handling"],
-      "reviewer": "required: integration seams",
-      "cuttable": false
-    },
-    {
-      "id": "verify-acceptance",
-      "objective": "Independent acceptance gate: real-EPUB quality gate (ADR-3, cut permitted here), full browser walkthrough, a11y pass (gate 4), privacy pass (ADR-10), docs pass.",
-      "inputs": ["all module outputs", "grilling.md acceptance criteria", "decisions.md ADR-3/ADR-10"],
-      "outputs": [".autoforge/validation/walkthrough.md"],
-      "touches": [".autoforge/validation/"],
-      "blocked_by": ["app", "docs-assets"],
-      "acceptance": "walkthrough.md records observed results for: (1) node-level ingest dispatch on fixture EPUB -> source:'epub' with correct chapter count (skip+record ADR-3 fallback if cut); (2) real DRM-free Gutenberg EPUB imports through UI with correct chapter count and readable text (cut permitted here if it fails); (3) sample TXT -> baseline -> RSVP 1-2 words -> quiz -> dashboard -> reload persistence; (4) keyboard-only loop, screen-reader mode, reduced-motion default, contrast spot-check; (5) Network panel zero requests after load and no fetch( in src/; (6) README matches shipped behavior (incl. Node >=22.7 + pilot plan) and overclaim check passes.",
-      "skills": ["browser-qa", "accessibility", "verification-loop"],
-      "reviewer": "required: independent of implementers; gate 4 failure halts release",
-      "cuttable": false
-    }
-  ],
-  "parallel_groups": [
-    {
-      "group": "G1",
-      "modules": ["shell", "lib-text", "lib-orp", "lib-quiz", "lib-metrics", "lib-store", "epub-import", "docs-assets"],
-      "disjoint_check": "index.html/styles/app.css/src/ui/a11y.js/package.json | src/lib/text.js+test/text.test.js | src/lib/orp.js+test/orp.test.js | src/lib/quiz.js+test/quiz.test.js | src/lib/metrics.js+test/metrics.test.js | src/lib/store.js | src/lib/zip.js+src/lib/epub.js+test/zip.test.js+test/epub.test.js | README.md+assets/sample.txt — no repeated path",
-      "note": "8 workers in one turn"
-    },
-    {
-      "group": "G2",
-      "modules": ["lib-player", "lib-pipeline"],
-      "disjoint_check": "src/lib/player.js+test/player.test.js | src/lib/pipeline.js+test/pipeline.test.js — disjoint",
-      "note": "player blocked by lib-orp; pipeline blocked by lib-text"
-    },
-    {
-      "group": "G3",
-      "modules": ["ui-library", "ui-player-view", "ui-quiz-view", "ui-dashboard"],
-      "disjoint_check": "src/ui/library.js+test/harness/library.html | src/ui/player-view.js+test/harness/player-view.html | src/ui/quiz-view.js+test/harness/quiz-view.html | src/ui/dashboard.js+test/harness/dashboard.html — disjoint",
-      "note": "all blocked by shell (plus frozen lib deps); DOM contract + harness paths pinned so views do not wait on each other"
-    },
-    {
-      "group": "G4",
-      "modules": ["app"],
-      "disjoint_check": "single module",
-      "note": "blocked by every view and lib"
-    },
-    {
-      "group": "G5",
-      "modules": ["verify-acceptance"],
-      "disjoint_check": "single module; writes .autoforge/validation/ only",
-      "note": "blocked by app + docs-assets"
-    }
-  ],
-  "criticalPath": ["lib-orp", "lib-player", "ui-player-view", "app", "verify-acceptance"],
-  "epubCutProtocol": {
-    "gate": "epub-import fixture tests failing on real-world EPUBs, schedule pressure, or verify-acceptance step 2 failing on a real Gutenberg EPUB",
-    "action": "delete src/lib/zip.js, src/lib/epub.js, test/zip.test.js, test/epub.test.js; record ADR-3 fallback; verify-acceptance steps 1-2 skipped",
-    "collateral": "none: pipeline dynamic import converts missing module to UnsupportedFormatError('EPUB support unavailable') (lib-pipeline acceptance)"
+ "schemaVersion": "2.0",
+ "run": "speedreading-002",
+ "revision": "plan v2.1 \u2014 critic findings #1-#9 incorporated by orchestrator (see .autoforge/reviews/plan-002.md); auto-approved per protocol (all resolvable, no human-authority gate)",
+ "objective": "Close all 19 frontier tickets: followups F01-F08,F10 + redesign-build RB1-RB3,RS1-RS7. Resolved work (deploy-imports, redesign plan, followups-09) is out of scope.",
+ "sourceArtifacts": [
+  ".autoforge/discovery/tracker-index.md",
+  ".autoforge/requirements/grilling.md",
+  ".autoforge/architecture/decisions.md",
+  ".autoforge/plans/plan.md",
+  ".autoforge/reviews/plan-002.md"
+ ],
+ "invariants": [
+  "src/lib/* never imports src/ui/*, never touches document/window at import time, never calls fetch",
+  "store.js is the only IndexedDB user",
+  "player.js is the only module owning a timer",
+  "orp.js is the only module with ORP constants",
+  "zip.js is the only ZIP parser",
+  "pipeline.js reaches EPUB via dynamic import",
+  "package.json is exactly {\"type\":\"module\"}",
+  "node --test is for DOM-free lib modules only (ADR-6); DOM/view/harness verification runs in headless Chromium via the CDP walkthrough harness or standalone harness scripts",
+  "test file append protocol: RB1 writes sessionTicks tests into test/metrics.test.js first; F03 appends activeMs tests after \u2014 append-only, no rewrites"
+ ],
+ "modules": [
+  {
+   "id": "M-F01",
+   "objective": "Chapter picker: currentChapter in app.js, session/quiz chapterIndex+chapterTitle attribution, textId stays grouping key, unattributed renders unknown",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/01-chapter-picker.md",
+    "decisions.md ADR-11"
+   ],
+   "outputs": [
+    "src/app.js",
+    "src/ui/library.js"
+   ],
+   "touches": [
+    "src/app.js",
+    "src/ui/library.js"
+   ],
+   "blocked_by": [
+    "M-F03"
+   ],
+   "acceptance": "Walkthrough step (CDP): import multi-chapter fixture EPUB, open chapter 2 via UI, play to end, quiz, assert exported session carries chapterIndex 1 + chapterTitle and dashboard/export show it; unattributed legacy record renders 'unknown', never filtered. (No node test: logic is DOM-bound in app.js per ADR-6.)",
+   "skills": [
+    "tdd"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
   },
-  "coverage": {
-    "source": "decisions.md section 6 MVP file list",
-    "items": {
-      "1: index.html + styles/app.css": "shell",
-      "2: src/lib/text.js + test/text.test.js": "lib-text",
-      "3: src/lib/orp.js + test/orp.test.js": "lib-orp",
-      "4: src/lib/player.js + test/player.test.js": "lib-player",
-      "5: src/lib/quiz.js + test/quiz.test.js": "lib-quiz",
-      "6: src/lib/metrics.js + test/metrics.test.js": "lib-metrics",
-      "7: src/lib/store.js": "lib-store",
-      "8: src/lib/pipeline.js + test/pipeline.test.js": "lib-pipeline",
-      "9: src/ui/a11y.js": "shell",
-      "9b: src/ui/library.js": "ui-library",
-      "10: src/ui/player-view.js": "ui-player-view",
-      "11: src/ui/quiz-view.js": "ui-quiz-view",
-      "11b: src/ui/dashboard.js": "ui-dashboard",
-      "12: src/app.js": "app",
-      "13: src/lib/zip.js + src/lib/epub.js + test/zip.test.js + test/epub.test.js": "epub-import",
-      "14: README.md": "docs-assets",
-      "15: assets/sample.txt": "docs-assets"
-    },
-    "result": "15/15 files owned exactly once; 0 unowned; 0 duplicated",
-    "outOfMvpFiles": [
-      "package.json ({\"type\":\"module\"}) — owner shell",
-      "test/helpers/zip-fixture.js — owner epub-import (test-only fixture builder)",
-      "test/harness/library.html — owner ui-library",
-      "test/harness/player-view.html — owner ui-player-view",
-      "test/harness/quiz-view.html — owner ui-quiz-view",
-      "test/harness/dashboard.html — owner ui-dashboard",
-      ".autoforge/validation/walkthrough.md — verification evidence only"
-    ]
+  {
+   "id": "M-F02",
+   "objective": "Quiz authoring mode beside answering in quiz-view; authoring edits answer/accepted and sets edited:true; answering writes only userAnswer; scoreQuiz unchanged",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/02-quiz-authoring-mode.md",
+    "decisions.md ADR-12"
+   ],
+   "outputs": [
+    "src/ui/quiz-view.js",
+    "test/harness/quiz-authoring.html"
+   ],
+   "touches": [
+    "src/ui/quiz-view.js",
+    "test/harness/quiz-authoring.html"
+   ],
+   "blocked_by": [],
+   "acceptance": "Harness page (headless Chromium): authoring edits persist with edited:true; answering DOM contains no expected strings pre-save (grep renderAnswering for q.answer/q.accepted references exits nonzero); scoreQuiz unchanged (node --test test/quiz.test.js green).",
+   "skills": [
+    "tdd"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
   },
-  "outOfScope": [
-    "bundler / CI config / service worker",
-    "telemetry / analytics / accounts / cloud sync",
-    "PDF import / DRM handling",
-    "LLM quiz generation",
-    "per-chunk complexity model / in-session adaptive WPM",
-    "any package.json content beyond {\"type\":\"module\"}"
-  ]
+  {
+   "id": "M-F03",
+   "objective": "Pure activeMs(events)->ms in metrics.js (per-gap min(gap, expectedMs*4+250), [] -> 0); app.js collects events per chunk emission via nextDelay and calls at session end",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/03-wpm-active-time-unit.md",
+    "decisions.md ADR-13"
+   ],
+   "outputs": [
+    "src/lib/metrics.js",
+    "test/metrics.test.js",
+    "src/app.js"
+   ],
+   "touches": [
+    "src/lib/metrics.js",
+    "test/metrics.test.js",
+    "src/app.js"
+   ],
+   "blocked_by": [
+    "M-RB1"
+   ],
+   "acceptance": "node --test test/metrics.test.js (append activeMs cases after RB1's sessionTicks cases per append protocol): equivalence uninterrupted = sum(expected) \u00b1 rounding; pause/hidden-tab/mid-session-WPM/empty/single cases; happy-path WPM unchanged.",
+   "skills": [
+    "tdd"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-F04",
+   "objective": "Quiz regression fixture: inline 150-250w public-domain excerpt, fixed seed, exact-output + stopword/distractor/seed-sensitivity asserts. No app code.",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/04-quiz-regression-lockin.md",
+    "decisions.md ADR-14"
+   ],
+   "outputs": [
+    "test/quiz-regression.test.js"
+   ],
+   "touches": [
+    "test/quiz-regression.test.js"
+   ],
+   "blocked_by": [],
+   "acceptance": "node --test test/quiz-regression.test.js green.",
+   "skills": [
+    "tdd"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-F05",
+   "objective": "Export/import round-trip in browser harness: export->wipe->import with confirm-accept AND confirm-dismiss paths, wrong-schema negative with data intact. Schema-mismatch owned here only (ADR-15).",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/05-export-import-e2e.md",
+    "decisions.md ADR-15"
+   ],
+   "outputs": [
+    "scripts/export-import.js",
+    ".autoforge/validation/e2e-walkthrough.mjs"
+   ],
+   "touches": [
+    "scripts/export-import.js",
+    ".autoforge/validation/e2e-walkthrough.mjs"
+   ],
+   "blocked_by": [],
+   "acceptance": "Standalone CDP run of test/harness/export-import.js passes (round-trip intact, dismiss loses nothing, wrong-schema rejected with data intact) + extended walkthrough green. Walkthrough edits owned by this module only in G0.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-F06A",
+   "objective": "Scripted keyboard walk (Space/arrows/+/- drive player), focus visibility assertions, aria-live/role=status attribute checks, token contrast grep. Claims attributes only, never announcement quality.",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/06-sr-keyboard-verification.md",
+    "decisions.md ADR-16"
+   ],
+   "outputs": [
+    "scripts/a11y-checks.js"
+   ],
+   "touches": [
+    "scripts/a11y-checks.js"
+   ],
+   "blocked_by": [],
+   "acceptance": "Standalone CDP run passes: key events drive playback, focus outlines present on all interactive controls, role=status announces at sentence boundaries only, aria-live=polite in SR mode, body contrast >= 4.5:1 computed.",
+   "skills": [
+    "accessibility"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-F06H",
+   "objective": "Human-only: real screen-reader listening + keyboard-only full loop with trap notes. No agent implementation.",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/06-sr-keyboard-verification.md",
+    "test/harness/a11y-checks.js"
+   ],
+   "outputs": [
+    "docs/sr-pass-note.md"
+   ],
+   "touches": [
+    "docs/sr-pass-note.md"
+   ],
+   "blocked_by": [
+    "M-F06A"
+   ],
+   "acceptance": "Documented human pass (SR name+version, step notes, traps, verdict). Tracked separately; does NOT block release (automation covers attributes).",
+   "skills": [],
+   "reviewer": "human",
+   "cuttable": false,
+   "human_gate": true
+  },
+  {
+   "id": "M-F07",
+   "objective": "Simulated quota/abort/malformed-payload failure units vs store contract + recovery via existing alerts. No new dialogs, no schema change. Quota/abort owned here only (ADR-15).",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/07-idb-failure-hardening.md",
+    "decisions.md ADR-15"
+   ],
+   "outputs": [
+    "scripts/idb-failure.js"
+   ],
+   "touches": [
+    "scripts/idb-failure.js"
+   ],
+   "blocked_by": [],
+   "acceptance": "Standalone CDP run passes: quota rejection readable + actionable message + data intact; abort rejects without hang or partial writes; malformed import returns documented error with data intact.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-F08",
+   "objective": "MEASURE FIRST on the real 130k-word book: standalone node script prints tokenize/chunk wall time + chunk-array heap + PASS/FAIL vs budgets (Node<2s, browser import<3s responsive, heap<100MB). Code change ONLY on measured miss.",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/08-large-book-perf.md",
+    "decisions.md ADR-17"
+   ],
+   "outputs": [
+    "scripts/perf-large-book.js"
+   ],
+   "touches": [
+    "scripts/perf-large-book.js"
+   ],
+   "blocked_by": [],
+   "acceptance": "node scripts/perf-large-book.js prints timings+heap+verdict; on PASS zero app diff (git status --porcelain src/ styles/ empty); verdict recorded in ticket Comments.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false,
+   "fix_only_on_miss": true
+  },
+  {
+   "id": "M-F10",
+   "objective": "Span drill mode inside player-view reusing chunk/ORP/engine; variable preview width, fixed anchor; recognition checks reuse scoring; sessions carry optional drill:'span' (producer in app.js); dashboard/summarize unchanged; gate-5 copy guardrail",
+   "inputs": [
+    ".scratch/speedreading-followups/issues/10-span-training-mode.md",
+    "decisions.md ADR-18"
+   ],
+   "outputs": [
+    "src/ui/player-view.js",
+    "src/app.js"
+   ],
+   "touches": [
+    "src/ui/player-view.js",
+    "src/app.js",
+    "src/ui/dashboard.js",
+    "src/lib/player.js",
+    "test/player.test.js",
+    ".autoforge/validation/e2e-walkthrough.mjs"
+   ],
+   "blocked_by": [
+    "M-F01"
+   ],
+   "acceptance": "Walkthrough drill steps (harness): variable-width preview renders at fixed anchor, recognition check scores, drill flag visible on session; grep faster|boost|double|improve your speed over src/ui/player-view.js exits nonzero. (No node test: DOM-bound per ADR-6.)",
+   "skills": [
+    "tdd"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RB1",
+   "objective": "splitSentences in src/lib/text.js (abbreviation-aware Mr/Mrs/Ms/Dr/St, ''->[]) + sessionTicks in metrics.js (best=argmax wpm, ties first) + tests. Exact \u00a78 signatures.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/B1-lib-sentence-ticks.md",
+    "decisions.md ADR-19"
+   ],
+   "outputs": [
+    "src/lib/text.js",
+    "src/lib/metrics.js",
+    "test/text.test.js",
+    "test/metrics.test.js"
+   ],
+   "touches": [
+    "src/lib/text.js",
+    "src/lib/metrics.js",
+    "test/text.test.js",
+    "test/metrics.test.js"
+   ],
+   "blocked_by": [],
+   "acceptance": "node --test test/text.test.js test/metrics.test.js green (splitSentences abbreviation/empty cases; sessionTicks best/tie/empty cases). test/metrics.test.js append protocol: F03 appends after.",
+   "skills": [
+    "tdd"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RB2",
+   "objective": "h(tag,attrs,...children) in src/ui/h.js with on: listener shorthand + class: string, zero view edits. Exact \u00a78 signature.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/B2-dom-helper-h.md",
+    "decisions.md ADR-19"
+   ],
+   "outputs": [
+    "src/ui/h.js",
+    "test/harness/h.html"
+   ],
+   "touches": [
+    "src/ui/h.js",
+    "test/harness/h.html"
+   ],
+   "blocked_by": [],
+   "acceptance": "node --check src/ui/h.js + harness page structural assertions pass in headless Chromium (nesting, attrs, listeners attached). (No node --test: needs document per ADR-6.)",
+   "skills": [
+    "tdd"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RB3",
+   "objective": "styles/tokens.css (:root custom properties ONLY, values ex .scratch/speedreading-redesign/design/tokens.md) + index.html link order. Zero visual change.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/B3-tokens-css-split.md",
+    ".scratch/speedreading-redesign/design/tokens.md"
+   ],
+   "outputs": [
+    "styles/tokens.css",
+    "index.html"
+   ],
+   "blocked_by": [],
+   "acceptance": "grep proves tokens.css has no selectors beyond :root and app.css defines no new custom properties; walkthrough renders pixel-same (no visual diff step).",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RS1",
+   "objective": "Header/nav material per pass-3 spec + active nav state in app routing; owns app.css header/nav section only.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/S1-header-nav-material.md",
+    ".scratch/speedreading-redesign/design/pass-3-*.md"
+   ],
+   "outputs": [
+    "styles/app.css",
+    "src/app.js"
+   ],
+   "touches": [
+    "styles/app.css",
+    "src/app.js"
+   ],
+   "blocked_by": [
+    "M-RB3",
+    "M-F10"
+   ],
+   "acceptance": "Walkthrough: header material per spec values, active nav state visible + focusable, routing unchanged; reduced-transparency/contrast fallbacks verified by emulation.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RS2",
+   "objective": "Library shelf restyle + h() migration; owns app.css library section only; behavior identical.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/S2-shelf-restyle.md"
+   ],
+   "outputs": [
+    "styles/app.css",
+    "src/ui/library.js"
+   ],
+   "touches": [
+    "styles/app.css",
+    "src/ui/library.js"
+   ],
+   "blocked_by": [
+    "M-RB2",
+    "M-RB3",
+    "M-RS1",
+    "M-F01"
+   ],
+   "acceptance": "Walkthrough: shelf matches spec incl. empty-state invitation; all import/open/delete/export flows behave as before.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RS3",
+   "objective": "Player page restyle + margin rail/strip from sessionTicks + session-setup block; h() migration; owns app.css player/rail/setup sections; playback untouched.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/S3-page-rail-setup.md"
+   ],
+   "outputs": [
+    "styles/app.css",
+    "src/ui/player-view.js"
+   ],
+   "touches": [
+    "styles/app.css",
+    "src/ui/player-view.js"
+   ],
+   "blocked_by": [
+    "M-RB1",
+    "M-RB2",
+    "M-RB3",
+    "M-RS2",
+    "M-F10"
+   ],
+   "acceptance": "Walkthrough: rail ticks + best-lap marker from tested mapping; setup block persists settings; playback/keys/announcements behavior-identical.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RS4",
+   "objective": "Quiz copy freeze (Check answers, frozen note) + styling; h() migration; answering/authoring split preserved; owns app.css quiz section.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/S4-quiz-copy.md"
+   ],
+   "outputs": [
+    "styles/app.css",
+    "src/ui/quiz-view.js"
+   ],
+   "touches": [
+    "styles/app.css",
+    "src/ui/quiz-view.js"
+   ],
+   "blocked_by": [
+    "M-RB2",
+    "M-RB3",
+    "M-RS3",
+    "M-F02"
+   ],
+   "acceptance": "Walkthrough: copy verbatim per spec; honesty invariants hold (0%-on-wrong-answers re-verified); answering-exclusion grep still clean.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RS5",
+   "objective": "Dashboard lap rows (Lap N, paired WPM/comp/delta, best marker, 3-word badge) + Accept/Dismiss suggestion; h() migration; owns app.css dashboard section; grouping key stays textId.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/S5-log-lap-rows.md"
+   ],
+   "outputs": [
+    "styles/app.css",
+    "src/ui/dashboard.js"
+   ],
+   "touches": [
+    "styles/app.css",
+    "src/ui/dashboard.js"
+   ],
+   "blocked_by": [
+    "M-RB1",
+    "M-RB2",
+    "M-RB3",
+    "M-RS4"
+   ],
+   "acceptance": "Walkthrough: rows render with paired deltas, suggestion never auto-applies, export/import/start-session identical.",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RS6",
+   "objective": "Frozen motion values + all three fallback signals + responsive (<900px single column, tick strip, sticky transport); owns motion/responsive app.css sections; ADR-7 reduced-motion default preserved.",
+   "inputs": [
+    ".scratch/speedreading-redesign-build/issues/S6-motion-responsive.md"
+   ],
+   "outputs": [
+    "styles/app.css"
+   ],
+   "touches": [
+    "styles/app.css"
+   ],
+   "blocked_by": [
+    "M-RS5"
+   ],
+   "acceptance": "Walkthrough: values match spec; prefers-reduced-motion disables auto-advance; 390px layout verified.",
+   "skills": [
+    "accessibility"
+   ],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  },
+  {
+   "id": "M-RS7",
+   "objective": "RELEASE GATE ONLY (ADR-20): full suite + extended walkthrough (incl. F05 round-trip + visual assertions) green, independent review APPROVED, push to main, live-URL check. Zero feature work.",
+   "inputs": [
+    "all module outputs"
+   ],
+   "outputs": [
+    ".autoforge/validation/e2e-walkthrough.mjs"
+   ],
+   "touches": [
+    ".autoforge/validation/e2e-walkthrough.mjs"
+   ],
+   "blocked_by": [
+    "M-F01",
+    "M-F02",
+    "M-F03",
+    "M-F04",
+    "M-F05",
+    "M-F06A",
+    "M-F07",
+    "M-F08",
+    "M-F10",
+    "M-RB1",
+    "M-RB2",
+    "M-RB3",
+    "M-RS1",
+    "M-RS2",
+    "M-RS3",
+    "M-RS4",
+    "M-RS5",
+    "M-RS6"
+   ],
+   "acceptance": "node --test green + extended e2e green + review APPROVED recorded + live URL 200 with zero post-load external requests. (M-F06H human pass tracked separately and does not gate release: automation covers attributes per ADR-16.)",
+   "skills": [],
+   "reviewer": "agent",
+   "cuttable": false,
+   "human_gate": false
+  }
+ ],
+ "parallel_groups": [
+  {
+   "group": "G0",
+   "members": [
+    "M-RB2",
+    "M-RB3",
+    "M-F04",
+    "M-F05",
+    "M-F06A",
+    "M-F07",
+    "M-F08"
+   ],
+   "disjoint_check": "src/ui/h.js+test/harness/h.html | styles/tokens.css+index.html | test/quiz-regression.test.js | test/harness/export-import.js+e2e-walkthrough.mjs | test/harness/a11y-checks.js | test/harness/idb-failure.js | scripts/perf-large-book.js \u2014 pairwise disjoint; only M-F05 touches the walkthrough in G0",
+   "note": "7 workers in one turn"
+  },
+  {
+   "group": "G1",
+   "members": [
+    "M-RB1",
+    "M-F02"
+   ],
+   "disjoint_check": "src/lib/text.js+src/lib/metrics.js+test/text.test.js+test/metrics.test.js | src/ui/quiz-view.js+test/harness/quiz-authoring.html \u2014 disjoint",
+   "note": "after G0; RB1 must land before F03 (G2)"
+  },
+  {
+   "group": "G2",
+   "members": [
+    "M-F03",
+    "M-F01",
+    "M-F10"
+   ],
+   "disjoint_check": "SEQUENTIAL app.js chain in this order (F03 call-site, F01 chapter state, F10 drill flag); metrics append protocol RB1-then-F03",
+   "note": "strictly sequential, one worker at a time, after M-RB1"
+  },
+  {
+   "group": "G3",
+   "members": [
+    "M-RS1",
+    "M-RS2",
+    "M-RS3",
+    "M-RS4",
+    "M-RS5",
+    "M-RS6",
+    "M-RS7"
+   ],
+   "disjoint_check": "SEQUENTIAL S-chain sharing styles/app.css with per-ticket section ownership; RS1 needs app.js after F10 landed; RS2 needs library.js after F01; RS3 needs player-view.js after F10; RS4 needs quiz-view.js after F02",
+   "note": "strictly sequential, after G2; RS7 last"
+  }
+ ],
+ "criticalPath": [
+  "M-RB3",
+  "M-RS1",
+  "M-RS2",
+  "M-RS3",
+  "M-RS4",
+  "M-RS5",
+  "M-RS6",
+  "M-RS7"
+ ],
+ "coverage": {
+  "source": ".autoforge/discovery/tracker-index.md (19 frontier)",
+  "items": {
+   "F01": "M-F01",
+   "F02": "M-F02",
+   "F03": "M-F03",
+   "F04": "M-F04",
+   "F05": "M-F05",
+   "F06": "M-F06A+M-F06H (ADR-16 split, only sanctioned doubling)",
+   "F07": "M-F07",
+   "F08": "M-F08",
+   "F10": "M-F10",
+   "RB1": "M-RB1",
+   "RB2": "M-RB2",
+   "RB3": "M-RB3",
+   "RS1": "M-RS1",
+   "RS2": "M-RS2",
+   "RS3": "M-RS3",
+   "RS4": "M-RS4",
+   "RS5": "M-RS5",
+   "RS6": "M-RS6",
+   "RS7": "M-RS7"
+  },
+  "result": "19/19 owned exactly once; 0 unowned; 0 duplicated"
+ },
+ "outOfScope": [
+  "deploy-imports 01-07 (resolved)",
+  "redesign 01-11 (resolved)",
+  "followups-09 (superseded)",
+  "player-view split / settings module / router module (rejected hypothetical seams)",
+  "bundler / framework / backend / accounts / telemetry (ADR-1/ADR-10)",
+  "PDF rendering/OCR, DRM, URL proxying, LLM quizzes, mobile apps"
+ ]
 }

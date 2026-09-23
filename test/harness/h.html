@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>h() harness</title>
+    <style>
+      .container { padding: 8px; border: 1px solid #333; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { h } from "/src/ui/h.js";
+
+      // Small harness: build a nested DOM tree and perform lightweight assertions
+      let clickCount = 0;
+      const onClick = () => { clickCount += 1; };
+
+      const tree =
+        h('div', { class: 'container', on: { click: onClick } },
+          h('span', null, 'Hello'),
+          h('ul', null,
+            h('li', null, 'One'),
+            h('li', null, ['Two']),
+            h('li', null, h('strong', null, 'Three'))
+          ),
+          'Text'
+        );
+
+      document.getElementById('root').appendChild(tree);
+
+      // Basic checks (will run in browser, not in Node import context)
+      const ok = !!document.querySelector('div.container');
+      const span = document.querySelector('div.container > span');
+      const lis = document.querySelectorAll('div.container ul li');
+      const hasText = document.body.textContent.includes('Text');
+
+      // Expose result in DOM for potential debugging
+      document.documentElement.setAttribute('data-harness-ok', String(ok && span && lis.length === 3 && hasText));
+      // Attach a click to verify listener wiring (optional in headless test)
+      tree.click(); // simulate click listener invocation if browser supports programmatic events
+    </script>
+  </body>
+  </html>

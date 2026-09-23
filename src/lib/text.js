@@ -82,6 +82,58 @@ export function tokenize(text) {
   return tokens;
 }
 
+// Split text into sentences with abbreviation-aware logic.
+export function splitSentences(text) {
+  if (typeof text !== 'string' || text.length === 0) return [];
+  const abbreviations = new Set([
+    'mr.', 'mrs.', 'ms.', 'dr.', 'st.', 'prof.', 'sr.', 'jr.', 'no.', 'fig.', 'i.e.', 'e.g.',
+  ]);
+  const sentences = [];
+  const n = text.length;
+  let start = 0;
+
+  for (let i = 0; i < n; i++) {
+    const ch = text[i];
+    if (ch !== '.' && ch !== '!' && ch !== '?') continue;
+
+    // Absorb closing quotes/brackets into the candidate sentence end.
+    let end = i;
+    while (end + 1 < n && /["'”’`)\]]/.test(text[end + 1])) end += 1;
+
+    const after = end + 1;
+    const atEnd = after >= n;
+    // A boundary needs whitespace (or EOF) right after the punctuation — this
+    // keeps decimals (3.5) and initialisms (U.S.A.) inside their sentence.
+    if (!atEnd && !/\s/.test(text[after])) {
+      i = end;
+      continue;
+    }
+
+    // Whole-word match only: "This is a test." must not match "St." just
+    // because the text ends with "st."; the final word itself must be the abbr.
+    // A known abbreviation or dotted initialism (U.S.A., e.g.) never ends a
+    // sentence mid-text; at true end (EOF) the guard does not apply.
+    const tail = text.slice(start, i + 1);
+    const lastWord = tail.match(/([A-Za-z][A-Za-z.]*)$/);
+    const word = lastWord ? lastWord[1] : '';
+    const endsWithAbbreviation = abbreviations.has(word.toLowerCase());
+    const endsWithInitialism = /^([A-Za-z]\.){2,}$/.test(word);
+    if ((endsWithAbbreviation || endsWithInitialism) && !atEnd) {
+      i = end;
+      continue;
+    }
+
+    const sentence = text.slice(start, end + 1).trim();
+    if (sentence.length > 0) sentences.push(sentence);
+    start = after;
+    i = end;
+  }
+
+  const rest = text.slice(start).trim();
+  if (rest.length > 0) sentences.push(rest);
+  return sentences;
+}
+
 function endsSentencePunctuationTrail(trail) {
   if (!trail) return false;
   // Strip trailing whitespace
