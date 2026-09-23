@@ -1,4 +1,4 @@
-export function createLibraryView(root, {onImportFile, onOpenText, onDeleteText, onExport, onImportJson}) {
+export function createLibraryView(root, {onImportFile, onOpenText, onDeleteText, onExport, onImportJson, onImportUrl}) {
   // Build a self-contained subtree inside the provided root
   const container = document.createElement('div');
   container.className = 'library-container';
@@ -6,7 +6,7 @@ export function createLibraryView(root, {onImportFile, onOpenText, onDeleteText,
   // File input for plain text/epub imports
   const importInput = document.createElement('input');
   importInput.type = 'file';
-  importInput.accept = '.txt,.epub';
+  importInput.accept = '.txt,.md,.epub,.docx,.pdf';
   importInput.setAttribute('aria-label', 'Import file');
   // Change handler calls the provided callback with the File
   importInput.addEventListener('change', (e) => {
@@ -66,6 +66,60 @@ export function createLibraryView(root, {onImportFile, onOpenText, onDeleteText,
   header.appendChild(rightsNotice);
 
   container.appendChild(header);
+
+  // Paste box: clipboard text becomes a first-class text via the normal file path
+  const pasteBox = document.createElement('div');
+  pasteBox.className = 'library-paste';
+  const pasteArea = document.createElement('textarea');
+  pasteArea.className = 'library-paste-area';
+  pasteArea.setAttribute('aria-label', 'Paste text to import');
+  pasteArea.placeholder = 'Paste article or book text here…';
+  pasteArea.rows = 4;
+  const pasteHint = document.createElement('p');
+  pasteHint.className = 'library-paste-hint';
+  pasteHint.hidden = true;
+  const pasteBtn = document.createElement('button');
+  pasteBtn.type = 'button';
+  pasteBtn.textContent = 'Import pasted text';
+  pasteBtn.setAttribute('aria-label', 'Import pasted text');
+  pasteBtn.addEventListener('click', () => {
+    const text = pasteArea.value.trim();
+    if (!text) {
+      pasteHint.textContent = 'Paste some text first — the box is empty.';
+      pasteHint.hidden = false;
+      return;
+    }
+    pasteHint.hidden = true;
+    pasteArea.value = '';
+    onImportFile?.(new File([text], 'pasted.txt', { type: 'text/plain' }));
+  });
+  pasteBox.append(pasteArea, pasteBtn, pasteHint);
+  container.appendChild(pasteBox);
+
+  // URL import: fetch an article, or fall back to the paste box on failure
+  const urlBox = document.createElement('div');
+  urlBox.className = 'library-url';
+  const urlInput = document.createElement('input');
+  urlInput.type = 'url';
+  urlInput.className = 'library-url-input';
+  urlInput.setAttribute('aria-label', 'Article URL to import');
+  urlInput.placeholder = 'https://example.com/article';
+  const urlBtn = document.createElement('button');
+  urlBtn.type = 'button';
+  urlBtn.textContent = 'Fetch URL';
+  urlBtn.setAttribute('aria-label', 'Fetch article from URL');
+  urlBtn.addEventListener('click', () => {
+    const url = urlInput.value.trim();
+    if (!url) {
+      pasteHint.textContent = 'Enter a URL first.';
+      pasteHint.hidden = false;
+      return;
+    }
+    pasteHint.hidden = true;
+    onImportUrl?.(url);
+  });
+  urlBox.append(urlInput, urlBtn);
+  container.appendChild(urlBox);
 
   // List of texts
   const list = document.createElement('ul');
@@ -131,8 +185,16 @@ export function createLibraryView(root, {onImportFile, onOpenText, onDeleteText,
     });
   }
 
+  function showPaste(hint) {
+    // Visibility is the caller's job (app routes to the library first); this only reveals the hint.
+    pasteHint.textContent = hint;
+    pasteHint.hidden = false;
+    pasteArea.focus();
+  }
+
   // Public API
   return {
-    render
+    render,
+    showPaste
   };
 }

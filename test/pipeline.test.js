@@ -60,13 +60,41 @@ nodeTest('ingest: .txt yields txt source and words', async () => {
 nodeTest('ingest: unknown extension throws', async () => {
   let threw = false;
   try {
-    await ingest({ name: 'notes.md', arrayBuffer: new ArrayBuffer(0) });
+    await ingest({ name: 'notes.xyz', arrayBuffer: new ArrayBuffer(0) });
   } catch (e) {
     threw = true;
     assert.ok(e instanceof UnsupportedFormatError);
     assert.ok(String(e).includes('Unsupported file type'));
   }
   assert.ok(threw);
+});
+
+nodeTest('ingest: .md strips formatting and chapterizes', async () => {
+  const enc = new TextEncoder();
+  const md = '# Chapter One\n\nThis is **bold** and *italic* with a [link](https://x.example).\n\n- item one\n- item two\n\n> quoted line\n';
+  const res = await ingest({ name: 'notes.md', arrayBuffer: enc.encode(md).buffer });
+  assert.strictEqual(res.source, 'md');
+  assert.strictEqual(res.chapters[0].title, 'Chapter One');
+  assert.match(res.chapters[0].text, /This is bold and italic with a link\./);
+  assert.match(res.chapters[0].text, /item one/);
+  assert.doesNotMatch(res.chapters[0].text, /[#*>\[\]()]/);
+});
+
+nodeTest('ingest: .docx dispatches to the docx module (not the unknown-type error)', async () => {
+  const enc = new TextEncoder();
+  await assert.rejects(
+    ingest({ name: 'empty.docx', arrayBuffer: enc.encode('not a zip').buffer }),
+    // Error classes are per-module; assert the contract (name + routed past the unknown-type error)
+    (err) => err?.name === 'UnsupportedFormatError' && !/Unsupported file type/.test(err.message),
+  );
+});
+
+nodeTest('ingest: unknown extension still rejected', async () => {
+  const enc = new TextEncoder();
+  await assert.rejects(
+    ingest({ name: 'notes.xyz', arrayBuffer: enc.encode('x').buffer }),
+    /Unsupported file type: xyz/,
+  );
 });
 
 nodeTest('ingest: epub dynamic import loads via helper fixture', async () => {

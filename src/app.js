@@ -2,7 +2,8 @@
 // Contract: plan.md §1a UI contracts + decisions.md §4 data model. ESM, no fetch, no timers.
 
 import { openStore } from './lib/store.js';
-import { ingest } from './lib/pipeline.js';
+import { ingest, normalizeTxt, chapterize } from './lib/pipeline.js';
+import { extractArticle } from './lib/article.js';
 import { tokenize, chunk } from './lib/text.js';
 import { createPlayer, nextDelay } from './lib/player.js';
 import { generateQuiz, scoreQuiz } from './lib/quiz.js';
@@ -52,6 +53,7 @@ async function boot() {
   let currentSession = null;
   let currentChunkSize = 2;
   let sessionOpen = false;
+  let quizActive = false;
   let startedAt = 0;
   // Active reading time: sum of chunk-to-chunk gaps, capped to exclude pauses/hidden time.
   let activeMs = 0;
@@ -140,6 +142,7 @@ async function boot() {
       comprehensionPct: null,
     };
     await store.put('sessions', currentSession);
+    quizActive = true;
     const seed = Date.now() % 100000;
     const questions = generateQuiz(currentChapter.text, { n: 5, seed });
     quizView.start({
@@ -169,6 +172,73 @@ async function boot() {
         libraryView.render(await allTexts());
       } catch (error) {
         alert(`Import failed: ${error.message}`);
+      }
+    },
+    onImportUrl: async (url) => {
+      let parsed;
+      try {
+        parsed = new URL(url);
+      } catch {
+        show('library');
+        libraryView.showPaste('That URL is not valid. Paste the article text below instead.');
+        return;
+      }
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        show('library');
+        libraryView.showPaste('Only http(s) URLs can be fetched. Paste the article text below instead.');
+        return;
+      }
+      const failToPaste = (reason) => {
+        show('library');
+        libraryView.showPaste(`${reason} Paste the article text below instead.`);
+      };
+      let response;
+      try {
+        response = await fetch(url);
+      } catch {
+        failToPaste('Could not fetch that URL (network or CORS blocked it).');
+        return;
+      }
+      if (!response.ok) {
+        failToPaste(`Fetch failed with status ${response.status}.`);
+        return;
+      }
+      try {
+        const contentType = response.headers.get('content-type') ?? '';
+        const lastSegment = parsed.pathname.split('/').filter(Boolean).pop() ?? 'article';
+        if (/text\/html|application\/xhtml/.test(contentType) || !/\.[a-z0-9]{2,5}([?#]|$)/i.test(parsed.pathname)) {
+          const article = extractArticle(await response.text());
+          const words = article.text.split(/\s+/).filter(Boolean);
+          if (words.length < 30) throw new Error('no readable article text found');
+          const chapters = chapterize(normalizeTxt(article.text));
+          await store.put('texts', {
+            id: crypto.randomUUID(),
+            title: article.title || parsed.hostname,
+            source: 'url',
+            url,
+            importedAt: Date.now(),
+            chapters,
+            totalWords: chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0),
+          });
+        } else {
+          const buffer = await response.arrayBuffer();
+          const ext = /\.([a-z0-9]{2,5})([?#]|$)/i.exec(parsed.pathname)?.[1]?.toLowerCase();
+          const name = ext ? lastSegment : `${lastSegment}.txt`;
+          const book = await ingest({ name, arrayBuffer: buffer });
+          await store.put('texts', {
+            id: crypto.randomUUID(),
+            title: book.title,
+            source: book.source,
+            url,
+            importedAt: Date.now(),
+            chapters: book.chapters,
+            totalWords: book.chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0),
+          });
+        }
+        libraryView.render(await allTexts());
+        show('library');
+      } catch (error) {
+        failToPaste(`Could not use that URL (${error.message}).`);
       }
     },
     onOpenText: openText,
@@ -226,10 +296,12 @@ async function boot() {
       const suggestion = settings.adaptiveSuggestions && currentSession
         ? suggestNextWpm(currentSession.wpm, currentSession.comprehensionPct)
         : null;
+      quizActive = false;
       await renderDashboard(suggestion);
       show('dashboard');
     },
     onCancel: async () => {
+      quizActive = false;
       await renderDashboard(null);
       show('dashboard');
     },
@@ -271,6 +343,27 @@ async function boot() {
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) currentPlayer?.pause();
+  });
+
+  // Shell header buttons were static placeholders; wire them to view routing.
+  document.querySelectorAll('header nav button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const target = button.textContent.trim().toLowerCase();
+      if (target === 'player' && currentText) {
+        show('player');
+        return;
+      }
+      if (target === 'quiz' && quizActive) {
+        show('quiz');
+        return;
+      }
+      if (target === 'dashboard') {
+        await renderDashboard(null);
+        show('dashboard');
+        return;
+      }
+      show('library');
+    });
   });
 
   playerView.renderSettings(settings);

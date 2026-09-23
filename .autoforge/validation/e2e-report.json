@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-23T04:16:57.981Z",
+  "ranAt": "2026-09-23T07:32:55.667Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -10,7 +10,7 @@
     {
       "step": "privacy: network requests after initial load",
       "ok": true,
-      "detail": "15 requests total since load (informational)"
+      "detail": "16 requests total since load (informational)"
     },
     {
       "step": "import: calibration.txt appears in library",
@@ -26,6 +26,26 @@
       "step": "ADR-3 gate: real Gutenberg EPUB imports with title + word count",
       "ok": true,
       "detail": "Pride and Prejudice (epub, 130614 words)OpenDelete"
+    },
+    {
+      "step": "import: paste box creates a first-class text",
+      "ok": true
+    },
+    {
+      "step": "import: .md ingests with formatting stripped",
+      "ok": true
+    },
+    {
+      "step": "import: .docx ingests via in-repo zip reader",
+      "ok": true
+    },
+    {
+      "step": "import: .pdf ingests via vendored pdf.js",
+      "ok": true
+    },
+    {
+      "step": "import: unreachable/CORS URL falls back to paste with a readable message",
+      "ok": true
     },
     {
       "step": "open: player view becomes the single visible section",
@@ -90,10 +110,10 @@
     {
       "step": "privacy: zero external/telemetry network requests (only same-origin static assets)",
       "ok": true,
-      "detail": "47 requests total, all same-origin static assets; no fetch/XHR/beacon"
+      "detail": "55 requests total, all same-origin static assets; no fetch/XHR/beacon"
     }
   ],
-  "passed": 19,
+  "passed": 24,
   "failed": 0,
   "networkRequests": [
     "http://127.0.0.1:8177/index.html",
@@ -101,6 +121,7 @@
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
     "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
     "http://127.0.0.1:8177/src/lib/text.js",
     "http://127.0.0.1:8177/src/lib/player.js",
     "http://127.0.0.1:8177/src/lib/quiz.js",
@@ -113,11 +134,17 @@
     "http://127.0.0.1:8177/src/lib/orp.js",
     "http://127.0.0.1:8177/src/lib/epub.js",
     "http://127.0.0.1:8177/src/lib/zip.js",
+    "http://127.0.0.1:8177/src/lib/docx.js",
+    "http://127.0.0.1:8177/src/lib/pdf.js",
+    "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
+    "https://example.com/",
+    "http://127.0.0.1:8177/vendor/pdfjs/pdf.worker.mjs",
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/app.css",
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
     "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
     "http://127.0.0.1:8177/src/lib/text.js",
     "http://127.0.0.1:8177/src/lib/player.js",
     "http://127.0.0.1:8177/src/lib/quiz.js",
@@ -133,6 +160,7 @@
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
     "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
     "http://127.0.0.1:8177/src/lib/text.js",
     "http://127.0.0.1:8177/src/lib/player.js",
     "http://127.0.0.1:8177/src/lib/quiz.js",

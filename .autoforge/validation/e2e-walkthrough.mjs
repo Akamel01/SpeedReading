@@ -221,6 +221,46 @@ async function main() {
       record('ADR-3 gate: real Gutenberg EPUB', false, `fixture not found at ${epubPath} (download pg1342.epub or set EPUB_PATH)`);
     }
 
+    // 2c. Paste box import (copied text path)
+    await evaluate(`
+      document.querySelector('#view-library .library-paste-area').value = 'Pasted words for testing the paste import path end to end.';
+      document.querySelector('#view-library .library-paste button').click();
+      true`);
+    await waitFor(`[...document.querySelectorAll('#view-library .library-item')].some(li => /pasted/i.test(li.textContent))`, 8000, 'pasted text imported');
+    record('import: paste box creates a first-class text', true);
+
+    // 2d. Markdown import
+    const mdContent = '# Md Chapter\n\nThis is **bold** text with a [link](https://example.com) inside it.\n';
+    await evaluate(fileInputScript(mdContent, 'notes.md', 'text/markdown'));
+    await waitFor(`[...document.querySelectorAll('#view-library .library-item')].some(li => /notes/i.test(li.textContent))`, 8000, 'md imported');
+    record('import: .md ingests with formatting stripped', true);
+
+    // 2e. DOCX import (bytes built in Node, delivered as a File)
+    const { buildZip } = await import('../../test/helpers/zip-fixture.js');
+    const docxXml = `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t xml:space="preserve">Docx Title</w:t></w:r></w:p><w:p><w:r><w:t xml:space="preserve">Docx body text for the walkthrough.</w:t></w:r></w:p></w:body></w:document>`;
+    const docxBytes = buildZip([
+      { name: '[Content_Types].xml', data: '<?xml version="1.0"?><Types/>' },
+      { name: 'word/document.xml', data: docxXml },
+    ]);
+    await evaluate(fileInputBytesScript(docxBytes.toString('base64'), 'walk.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+    await waitFor(`[...document.querySelectorAll('#view-library .library-item')].some(li => /walk/i.test(li.textContent))`, 8000, 'docx imported');
+    record('import: .docx ingests via in-repo zip reader', true);
+
+    // 2f. PDF import (minimal fixture built in Node, delivered as a File)
+    const { buildMinimalPdf } = await import('../../test/helpers/pdf-fixture.js');
+    const pdfBytes = buildMinimalPdf(['Walkthrough PDF page one text.', 'Walkthrough PDF page two text.']);
+    await evaluate(fileInputBytesScript(Buffer.from(pdfBytes).toString('base64'), 'walk.pdf', 'application/pdf'));
+    await waitFor(`[...document.querySelectorAll('#view-library .library-item')].some(li => /walk/i.test(li.textContent))`, 15000, 'pdf imported');
+    const pdfMeta = await evaluate(`[...document.querySelectorAll('#view-library .library-item')].map(li => li.textContent).find(t => /walk\\.pdf|walk/i.test(t))`);
+    record('import: .pdf ingests via vendored pdf.js', /walk/i.test(pdfMeta ?? ''));
+
+    // 2g. URL import against a CORS-blocking host must fall back to the paste box, readably
+    await evaluate(`document.querySelector('#view-library .library-url-input').value = 'https://example.com/'; document.querySelector('#view-library .library-url button').click(); true`);
+    const fallbackShown = await waitFor(
+      `!document.querySelector('#view-library .library-paste-hint').hidden && /Could not fetch|Fetch failed|not valid|Only http/.test(document.querySelector('#view-library .library-paste-hint').textContent)`,
+      15000, 'url fallback message').then(() => true);
+    record('import: unreachable/CORS URL falls back to paste with a readable message', fallbackShown);
+
     // 3. Open the calibration text explicitly (IDB getAll order is by random UUID key)
     await evaluate(`
       [...document.querySelectorAll('#view-library .library-item')]
@@ -308,9 +348,10 @@ async function main() {
       })()`);
     record('a11y: body text contrast >= 4.5:1', contrast >= 4.5, `ratio=${contrast}`);
 
-    // 10. Network: only same-origin static assets (document + modules + css) — zero external/telemetry requests
+    // 10. Network: only same-origin static assets plus the single explicit user-triggered URL-import
+    // fetch — zero telemetry or background requests
     const externalRequests = networkRequests.filter((u) =>
-      !u.startsWith(`http://127.0.0.1:${PORT}/`) && !u.includes('favicon'));
+      !u.startsWith(`http://127.0.0.1:${PORT}/`) && !u.includes('favicon') && u !== 'https://example.com/');
     record('privacy: zero external/telemetry network requests (only same-origin static assets)', externalRequests.length === 0,
       externalRequests.length
         ? `${externalRequests.length} external: ${externalRequests.join(', ')}`

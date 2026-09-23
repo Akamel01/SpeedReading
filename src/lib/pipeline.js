@@ -102,34 +102,72 @@ export function chapterize(text) {
   return chapters;
 }
 
+// Strip Markdown formatting, keeping prose and heading text for chapter detection.
+export function stripMarkdown(raw) {
+  return raw
+    .replace(/^---+$/gm, '')
+    .replace(/^([^\n]*)\n=+[ \t]*$/gm, '$1')
+    .replace(/^([^\n]*)\n-+[ \t]*$/gm, '$1')
+    .replace(/```[\s\S]*?```/g, (block) => block.replace(/```\w*[ \t]*\n?|```/g, ''))
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\[[^\]]*\]/g, '$1')
+    .replace(/(`{1,3})([^`]+)\1/g, '$2')
+    .replace(/(\*\*|__)(?=\S)(.+?)(?<=\S)\1/g, '$2')
+    .replace(/(^|[\s(>])[*_](?=\S)(.+?)(?<=\S)[*_]/g, '$1$2')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s{0,3}(?:[-*+]|\d+[.)])\s+/gm, '')
+    .replace(/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/gm, '')
+    .replace(/\|/g, ' ')
+    .replace(/<[a-zA-Z][^>]*>/g, ' ')
+    .replace(/<\/(p|div|h[1-6]|li|br|blockquote)>/gi, '\n');
+}
+
+function isModuleNotFound(err) {
+  return err?.code === 'ERR_MODULE_NOT_FOUND' || /Cannot find module/.test(String(err));
+}
+
+async function importOptional(path, unavailableMessage) {
+  try {
+    return await import(path);
+  } catch (err) {
+    if (isModuleNotFound(err)) throw new UnsupportedFormatError(unavailableMessage);
+    throw err;
+  }
+}
+
 // Ingest a file given name and ArrayBuffer
-// Supported: .txt (utf-8) and .epub (dynamic load)
+// Supported: .txt/.md (utf-8) and .epub/.docx/.pdf (dynamic load)
 export async function ingest({ name, arrayBuffer }) {
   const title = name.replace(/\.[^.]+$/, '');
   const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
 
-  if (ext === 'txt') {
+  if (ext === 'txt' || ext === 'md') {
     const decoder = new TextDecoder('utf-8');
     const raw = decoder.decode(arrayBuffer);
-    const normalized = normalizeTxt(raw);
+    const normalized = normalizeTxt(ext === 'md' ? stripMarkdown(raw) : raw);
     const chapters = chapterize(normalized);
-    return { title, source: 'txt', chapters };
+    return { title, source: ext, chapters };
   }
 
   if (ext === 'epub') {
-    try {
-      const mod = await import('./epub.js');
-      const book = await mod.epubToChapters(arrayBuffer);
-      return { title: book.title || title, source: 'epub', chapters: book.chapters };
-    } catch (err) {
-      // If EPUB support is unavailable (module missing), surface a clear error
-      const isModuleNotFound = err?.code === 'ERR_MODULE_NOT_FOUND' || /Cannot find module/.test(String(err));
-      if (isModuleNotFound) {
-        throw new UnsupportedFormatError('EPUB support unavailable');
-      }
-      throw err;
-    }
+    const mod = await importOptional('./epub.js', 'EPUB support unavailable');
+    const book = await mod.epubToChapters(arrayBuffer);
+    return { title: book.title || title, source: 'epub', chapters: book.chapters };
   }
 
-  throw new UnsupportedFormatError(`Unsupported file type: ${ext}`);
+  if (ext === 'docx') {
+    const mod = await importOptional('./docx.js', 'DOCX support unavailable');
+    const book = await mod.docxToChapters(arrayBuffer);
+    return { title: book.title && book.title !== 'Untitled document' ? book.title : title, source: 'docx', chapters: book.chapters };
+  }
+
+  if (ext === 'pdf') {
+    const mod = await importOptional('./pdf.js', 'PDF support unavailable');
+    const book = await mod.pdfToChapters(arrayBuffer, { filename: name });
+    return { title: book.title || title, source: 'pdf', chapters: book.chapters };
+  }
+
+  throw new UnsupportedFormatError(`Unsupported file type: ${ext || '(none)'}. Supported: .txt, .md, .epub, .docx, .pdf`);
 }
