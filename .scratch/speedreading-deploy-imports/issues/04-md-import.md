@@ -8,10 +8,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] `.md` ingest: code fences, emphasis, links/images (text kept), lists, blockquotes, rules, inline HTML stripped
-- [ ] Markdown headings feed chapter detection
-- [ ] File picker accepts `.md`; unknown-extension error unchanged otherwise
-- [ ] `node --test` green with fixture cases
+- [x] `.md` ingest: code fences, emphasis, links/images (text kept), lists, blockquotes, rules, inline HTML stripped
+- [x] Markdown headings feed chapter detection
+- [x] File picker accepts `.md`; unknown-extension error unchanged otherwise
+- [x] `node --test` green with fixture cases
+
+## Resolution
+
+Delivered 2026-09-23. Markdown stripping plus `.md` ingest dispatch; headings feed chapter detection; picker accepts `.md`. Evidence: unit fixture (bold/italic/links/lists/quotes stripped) + walkthrough `import: .md ingests with formatting stripped` PASS; `node --test` green.
 
 ## Comments
 

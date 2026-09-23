@@ -8,10 +8,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] Paste box + import button in the library; empty paste rejected readably
-- [ ] Pasted text flows through the same ingest pipeline (title default + chapters + word count)
-- [ ] Downstream identical to file imports
-- [ ] `node --test` green
+- [x] Paste box + import button in the library; empty paste rejected readably
+- [x] Pasted text flows through the same ingest pipeline (title default + chapters + word count)
+- [x] Downstream identical to file imports
+- [x] `node --test` green
+
+## Resolution
+
+Delivered 2026-09-23. Library paste box constructs a `pasted.txt` file through the normal ingest path; empty paste rejected inline. Evidence: walkthrough `import: paste box creates a first-class text` PASS; `node --test` green. Supersedes `speedreading-followups/09` (noted there).
 
 ## Comments
 

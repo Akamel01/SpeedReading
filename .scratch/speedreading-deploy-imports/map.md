@@ -15,6 +15,10 @@ Upstream run: `speedreading-001` (GO). Related: `.scratch/speedreading-followups
 - URL via direct fetch with readable-text extraction; CORS failure falls back to paste box.
 - Public repo `Akamel01/SpeedReading`.
 
+## Resolution
+
+All seven tickets resolved 2026-09-23 (see `## Resolution` in each file). Release evidence: `node --test` 91/91, e2e walkthrough 25/25 GO, import-wave review APPROVED_WITH_NOTES, live at https://akamel01.github.io/SpeedReading/.
+
 ## Ticket index
 
 | # | Ticket | Category | Status | Blocked by |

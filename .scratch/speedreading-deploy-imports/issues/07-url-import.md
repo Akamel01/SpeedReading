@@ -8,11 +8,15 @@
 
 **Status:** ready-for-agent
 
-- [ ] URL input in the library; fetch with same-origin/CORS respected (no proxy, no backend)
-- [ ] Article extraction strips scripts/styles/nav/chrome, prefers `<article>`/main content
-- [ ] Failure shows a readable message and reveals the paste box path
-- [ ] Explicit user-initiated fetch only; posture documented in README
-- [ ] `node --test` green with fixture HTML cases
+- [x] URL input in the library; fetch with same-origin/CORS respected (no proxy, no backend)
+- [x] Article extraction strips scripts/styles/nav/chrome, prefers `<article>`/main content
+- [x] Failure shows a readable message and reveals the paste box path
+- [x] Explicit user-initiated fetch only; posture documented in README
+- [x] `node --test` green with fixture HTML cases
+
+## Resolution
+
+Delivered 2026-09-23. URL input fetches http(s) only, extracts article text (article/main preference, chrome stripped) or dispatches binary types through ingest; any failure surfaces a readable message plus the paste fallback. Evidence: 3 unit tests + walkthrough `import: unreachable/CORS URL falls back to paste with a readable message` PASS; only user-initiated fetch ever leaves the browser (privacy step green). Successful-fetch path depends on target CORS headers and stays environment-dependent.
 
 ## Comments
 

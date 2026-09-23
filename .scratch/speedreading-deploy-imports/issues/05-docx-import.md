@@ -8,10 +8,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] `.docx` ingest: `word/document.xml` paragraphs → text; bold/italic/runs ignored; tables read in order
-- [ ] Missing/corrupt document.xml raises `UnsupportedFormatError`, never silent garbage
-- [ ] File picker accepts `.docx`; fixture tests cover stored + deflated packages
-- [ ] `node --test` green
+- [x] `.docx` ingest: `word/document.xml` paragraphs → text; bold/italic/runs ignored; tables read in order
+- [x] Missing/corrupt document.xml raises `UnsupportedFormatError`, never silent garbage
+- [x] File picker accepts `.docx`; fixture tests cover stored + deflated packages
+- [x] `node --test` green
+
+## Resolution
+
+Delivered 2026-09-23. DOCX extractor over the in-repo zip reader (paragraph order, Heading styles, core-properties title); missing/empty packages raise `UnsupportedFormatError`. Evidence: 4 unit tests (stored + deflated fixtures) + walkthrough `import: .docx ingests via in-repo zip reader` PASS; `node --test` green.
 
 ## Comments
 

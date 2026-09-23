@@ -8,10 +8,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] Each header button routes to its view; exactly one section visible after click
-- [ ] Player/Quiz buttons with no active text/quiz fall back to Library (no dead screen)
-- [ ] Keyboard focus moves to the newly shown view
-- [ ] `node --test` green
+- [x] Each header button routes to its view; exactly one section visible after click
+- [x] Player/Quiz buttons with no active text/quiz fall back to Library (no dead screen)
+- [x] Keyboard focus moves to the newly shown view
+- [x] `node --test` green
+
+## Resolution
+
+Delivered 2026-09-23. Header buttons wired in the composition root with fallbacks (Player/Quiz → Library when no active content); focus moves via existing routing. Evidence: walkthrough step `nav: header buttons route to exactly one view` — `Library->view-library | Player->view-library | Quiz->view-library | Dashboard->view-dashboard`; 25/25 e2e GO.
 
 ## Comments
 

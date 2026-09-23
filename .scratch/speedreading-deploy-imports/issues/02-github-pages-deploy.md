@@ -8,10 +8,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] Public repo `Akamel01/SpeedReading` holds the code on `main`
-- [ ] Pages serves the app from the branch root; public URL loads with no console errors
-- [ ] README documents the public URL; `.nojekyll` present so static files serve verbatim
-- [ ] A fresh push redeploys without manual steps
+- [x] Public repo `Akamel01/SpeedReading` holds the code on `main`
+- [x] Pages serves the app from the branch root; public URL loads with no console errors
+- [x] README documents the public URL; `.nojekyll` present so static files serve verbatim
+- [x] A fresh push redeploys without manual steps
+
+## Resolution
+
+Delivered 2026-09-23. Repo `Akamel01/SpeedReading` public on `main`; Pages branch-source enabled; live at https://akamel01.github.io/SpeedReading/ (verified 200 for `/` with title `SpeedReading Shell` and `/src/app.js`); `.nojekyll` present; README records the URL. Pushes to `main` redeploy automatically.
 
 ## Comments
 

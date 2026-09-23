@@ -1,11 +1,16 @@
 {
-  "ranAt": "2026-09-23T07:32:55.667Z",
+  "ranAt": "2026-09-23T07:34:53.412Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
       "step": "boot: exactly one section visible",
       "ok": true,
       "detail": "visible=1 (library)"
+    },
+    {
+      "step": "nav: header buttons route to exactly one view (with fallbacks)",
+      "ok": true,
+      "detail": "Library->view-library | Player->view-library | Quiz->view-library | Dashboard->view-dashboard"
     },
     {
       "step": "privacy: network requests after initial load",
@@ -113,7 +118,7 @@
       "detail": "55 requests total, all same-origin static assets; no fetch/XHR/beacon"
     }
   ],
-  "passed": 24,
+  "passed": 25,
   "failed": 0,
   "networkRequests": [
     "http://127.0.0.1:8177/index.html",

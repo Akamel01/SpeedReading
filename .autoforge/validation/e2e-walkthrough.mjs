@@ -193,6 +193,19 @@ async function main() {
       `[...document.querySelectorAll('#view-library,#view-player,#view-quiz,#view-dashboard')].filter(s => !s.hidden).length`);
     record('boot: exactly one section visible', visibleCount === 1, `visible=${visibleCount} (library)`);
 
+    // 1b. Header nav buttons route views (Player/Quiz fall back to Library with no active content)
+    const navSeen = [];
+    for (const label of ['Library', 'Player', 'Quiz', 'Dashboard']) {
+      await evaluate(`[...document.querySelectorAll('header nav button')].find(b => b.textContent.trim() === '${label}').click()`);
+      await new Promise((r) => setTimeout(r, 200));
+      const visible = await evaluate(
+        `[...document.querySelectorAll('#view-library,#view-player,#view-quiz,#view-dashboard')].filter(s => !s.hidden).map(s => s.id).join(',')`);
+      navSeen.push(`${label}->${visible}`);
+      if (visible.split(',').length !== 1) throw new Error(`nav ${label} left visible=[${visible}]`);
+    }
+    record('nav: header buttons route to exactly one view (with fallbacks)', true, navSeen.join(' | '));
+    await evaluate(`[...document.querySelectorAll('header nav button')].find(b => b.textContent.trim() === 'Library').click()`);
+
     await new Promise((r) => setTimeout(r, 800));
     const requestsAtSettle = networkRequests.length;
     record('privacy: network requests after initial load', true, `${requestsAtSettle} requests total since load (informational)`);

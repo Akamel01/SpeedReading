@@ -8,10 +8,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] `vendor/pdfjs/` holds pinned pdf.mjs + worker; loaded by dynamic import only on `.pdf` ingest
-- [ ] Text extracted per page; outline titles become chapters, else one chapter (page breaks preserved)
-- [ ] Encrypted/unparseable PDFs raise `UnsupportedFormatError` with reason
-- [ ] README attributes pdf.js license; file picker accepts `.pdf`; `node --test` green
+- [x] `vendor/pdfjs/` holds pinned pdf.mjs + worker; loaded by dynamic import only on `.pdf` ingest
+- [x] Text extracted per page; outline titles become chapters, else one chapter (page breaks preserved)
+- [x] Encrypted/unparseable PDFs raise `UnsupportedFormatError` with reason
+- [x] README attributes pdf.js license; file picker accepts `.pdf`; `node --test` green
+
+## Resolution
+
+Delivered 2026-09-23. `vendor/pdfjs/` (pinned 4.10.38, Apache-2.0 attributed in README) loaded by dynamic import only on `.pdf` ingest; outline titles become chapters, else one chapter; encrypted/unreadable files raise `UnsupportedFormatError`. Evidence: 4 unit tests (incl. minimal-PDF text extraction in Node) + walkthrough `import: .pdf ingests via vendored pdf.js` PASS in headless Chromium; `node --test` green. Real-world multi-page PDFs beyond the fixture remain lightly covered.
 
 ## Comments
 
