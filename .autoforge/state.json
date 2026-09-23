@@ -165,12 +165,13 @@
   ],
   "incidents": [],
   "updated": "2026-09-23",
-  "verdict": "GO (18/19 closed; F06 human pass tracked as ready-for-human by design)",
+  "verdict": "GO \u2014 validator re-validation all green (109/109, 39/39, harnesses 5+8+5, perf PASS, live tokens verified); investigator hypotheses already resolved pre-release; F06 human SR pass remains (ready-for-human by design)",
   "evidence": {
     "unit": "node --test -> 109 pass / 0 fail",
     "walkthrough": ".autoforge/validation/e2e-walkthrough.mjs -> 39/39 GO",
     "harnesses": "export-import 5/5; a11y-checked 8/8 (trusted CDP input); idb-failure 5/5; quiz-authoring harness verified",
-    "release": "push 4328fed; live https://akamel01.github.io/SpeedReading/ 200 (tokens.css folio/iron)",
-    "reviews": ".autoforge/reviews/ (M-RB1..M-F10, S-chain, S-chain-r2 all APPROVED/APPROVED_WITH_NOTES)"
+    "release": "pushes 4328fed..ab961d2; live https://akamel01.github.io/SpeedReading/ 200 (tokens.css --folio verified)",
+    "reviews": ".autoforge/reviews/ (M-RB1..M-F10, S-chain, S-chain-r2 all APPROVED/APPROVED_WITH_NOTES)",
+    "validator": ".autoforge/validation/report-002.md (GO after REPLAN fixes)"
   }
 }
