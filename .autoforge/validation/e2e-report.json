@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-23T13:26:07.875Z",
+  "ranAt": "2026-09-23T13:31:22.172Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -120,7 +120,7 @@
     {
       "step": "dashboard: summary shows wpm + comprehension trend",
       "ok": true,
-      "detail": "3 sessions · best 1842 wpm · avg 1152 wpm · avg comprehension 0% · trend flat"
+      "detail": "3 sessions · best 1847 wpm · avg 1153 wpm · avg comprehension 0% · trend flat"
     },
     {
       "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
@@ -212,8 +212,8 @@
     "http://127.0.0.1:8177/src/lib/zip.js",
     "http://127.0.0.1:8177/src/lib/docx.js",
     "http://127.0.0.1:8177/src/lib/pdf.js",
-    "https://example.com/",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
+    "https://example.com/",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.worker.mjs",
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/tokens.css",

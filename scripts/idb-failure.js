@@ -136,7 +136,7 @@ async function main() {
     await evaluate(`(() => {
       const file = new File([JSON.stringify({ schemaVersion: 999 })], 'bad.json', { type: 'application/json' });
       const dt = new DataTransfer(); dt.items.add(file);
-      const input = document.querySelector('#view-library .library-header input[type="file"]');
+      const input = document.querySelector('#view-library .library-json-input');
       input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await new Promise((r) => setTimeout(r, 800));
     const alerts = await evaluate(`window.__alerts`);
