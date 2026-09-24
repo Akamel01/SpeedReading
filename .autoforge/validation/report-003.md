@@ -79,4 +79,11 @@ is cleared (validate-before-clear) — your existing data stays intact.
 
 ## HC-C human review
 
-(Pending — recorded here on sign-off. No push/deploy unless the human asks.)
+- 2026-09-24: human ordered merge → main, push, and production test (this section).
+- Deploy: commit cdbbe89 pushed to origin/main; GitHub Pages served the new
+  build (markers id="hud" + focusSummary verified live).
+- Production smoke (live https://akamel01.github.io/SpeedReading/, headless
+  Chromium): library boots, HUD totals, import works, player plays,
+  HUD hidden in focus mode, zero console errors — 6/6.
+- Still human-only: screenshot eyeball review (.autoforge/validation/screenshots/)
+  + docs/browser-checklist.md manual matrix + screen-reader pass (ADR-16).
