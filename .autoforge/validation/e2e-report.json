@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-24T07:04:10.129Z",
+  "ranAt": "2026-09-24T08:06:25.708Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -97,7 +97,7 @@
     {
       "step": "resume: pagehide writes profile.activeSession",
       "ok": true,
-      "detail": "{\"sessionId\":\"bc99396b-3459-40ba-aa7b-3f226b2fa5cd\",\"textId\":\"44db261e-1a41-498a-b070-7b5bc5ec15bf\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":146,\"startedAt\":1790233395187,\"savedAt\":1790233395333}"
+      "detail": "{\"sessionId\":\"c77b8711-1b49-49aa-9628-b553b5d43644\",\"textId\":\"1be1d75b-9a66-448b-92c1-53fe47ff86a4\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":148,\"startedAt\":1790237130628,\"savedAt\":1790237130776}"
     },
     {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
@@ -299,7 +299,7 @@
     {
       "step": "player: goal persists in settings per text",
       "ok": true,
-      "detail": "{\"8a29245d-a25f-435b-b74c-340ad892cb55\":{\"type\":\"wpm\",\"target\":400}}"
+      "detail": "{\"ab2eebb1-8587-4dad-9d78-6477d0c77748\":{\"type\":\"wpm\",\"target\":400}}"
     },
     {
       "step": "player: R restarts at first chunk",
@@ -313,12 +313,12 @@
     {
       "step": "player: pause-excluded elapsed (pauses not double-counted)",
       "ok": true,
-      "detail": "{\"elapsedMs\":19349,\"wall\":20548,\"wpm\":1364,\"words\":440}"
+      "detail": "{\"elapsedMs\":19332,\"wall\":20529,\"wpm\":1366,\"words\":440}"
     },
     {
       "step": "player: WPM uses total elapsed",
       "ok": true,
-      "detail": "wpm=1364 recomputed=1364"
+      "detail": "wpm=1366 recomputed=1366"
     },
     {
       "step": "player: reload with snapshot shows Resume banner",
@@ -394,7 +394,7 @@
     {
       "step": "quiz: Q1 key differs from the submitted wrong answer (miss is genuine)",
       "ok": true,
-      "detail": "key=\"flow\""
+      "detail": "key=\"words\""
     },
     {
       "step": "quiz: authoring re-scores display against edited keys (Q1 now Correct)",

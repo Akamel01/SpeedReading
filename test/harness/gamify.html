@@ -105,6 +105,13 @@
     record('chart point titles', circles.every((c) => { const t = c.querySelector('title'); return t && /WPM/.test(t.textContent); }),
       `${circles.filter((c) => c.querySelector('title')).length}/${circles.length} titled`);
     record('chart a11y', chart.getAttribute('role') === 'img' && !!chart.getAttribute('aria-label'), chart.getAttribute('aria-label'));
+    const firstCircle = circles[0];
+    record('chart SVG namespace (renders, not just DOM)',
+      firstCircle && firstCircle.namespaceURI === 'http://www.w3.org/2000/svg',
+      firstCircle ? firstCircle.namespaceURI : 'no circles');
+    record('chart points paint (non-zero bounds)',
+      firstCircle && firstCircle.getBoundingClientRect().width > 0,
+      firstCircle ? `w=${firstCircle.getBoundingClientRect().width}` : 'no circles');
 
     const chart2 = wpmChart(sessions, { maxPoints: 120 });
     const titles1 = circles.map((c) => c.querySelector('title').textContent).join('|');

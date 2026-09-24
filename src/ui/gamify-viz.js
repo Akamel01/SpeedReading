@@ -7,6 +7,25 @@
 import {h} from './h.js';
 import {personalRecords, RECORD_IDS} from '../lib/records.js';
 
+// SVG-namespace element builder (HC-C finding: document.createElement puts
+// <svg>/<circle>/<path>/<title> in the HTML namespace, where they never
+// render — the DOM looks right to querySelector but paints nothing).
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs, ...kids) {
+  const el = document.createElementNS(SVG_NS, tag);
+  if (attrs && typeof attrs === 'object') {
+    for (const [key, value] of Object.entries(attrs)) {
+      if (key === 'class') el.setAttribute('class', value);
+      else if (value != null) el.setAttribute(key, String(value));
+    }
+  }
+  for (const kid of kids.flat(9)) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    el.appendChild(typeof kid === 'string' || typeof kid === 'number' ? document.createTextNode(String(kid)) : kid);
+  }
+  return el;
+}
+
 // Helpers -----------------------------------------------------------------
 // Local day key (ADR-24 I4 convention: local, zero-padded) and Monday-start week key.
 function dayKey(ts) {
@@ -94,10 +113,10 @@ export function wpmChart(sessions, { maxPoints = 120, comprehension = false } = 
     pathD += (idx === 0) ? `M ${pt.x.toFixed(2)} ${pt.y.toFixed(2)}` : ` L ${pt.x.toFixed(2)} ${pt.y.toFixed(2)}`;
   });
 
-  // SVG elements for points with titles
+  // SVG elements for points with titles (namespace-safe via svgEl)
   const circles = pts.map((pt, idx) => {
     const title = `${Math.round(pts[idx].value)} WPM on ${points[idx]?.label ?? ''}`;
-    return h('circle', { cx: pt.x, cy: pt.y, r: 3, 'aria-label': `WPM ${Math.round(pts[idx].value)}` }, h('title', null, title));
+    return svgEl('circle', { cx: pt.x, cy: pt.y, r: 3, 'aria-label': `WPM ${Math.round(pts[idx].value)}` }, svgEl('title', null, title));
   });
 
   // Optional quieter comprehension series (ADR-25 trends): 0-100% scaled to chart height.
@@ -109,10 +128,10 @@ export function wpmChart(sessions, { maxPoints = 120, comprehension = false } = 
       const y = typeof c === 'number' ? 200 - Math.round((Math.min(100, Math.max(0, c)) / 100) * (hGT - 20)) - 10 : null;
       if (y !== null) d += (d === '' ? `M ${pt.x.toFixed(2)} ${y.toFixed(2)}` : ` L ${pt.x.toFixed(2)} ${y.toFixed(2)}`);
     });
-    if (d !== '') compPath = h('path', { class: 'viz-line-comp', d, fill: 'none', 'stroke-width': '1.5' });
+    if (d !== '') compPath = svgEl('path', { class: 'viz-line-comp', d, fill: 'none', 'stroke-width': '1.5' });
   }
 
-  const svg = h('svg', {
+  const svg = svgEl('svg', {
     class: 'viz-chart',
     role: 'img',
     width: '100%',
@@ -120,7 +139,7 @@ export function wpmChart(sessions, { maxPoints = 120, comprehension = false } = 
     viewBox: `0 0 ${w} 200`,
     'aria-label': showComp ? 'WPM and comprehension over sessions' : 'WPM over sessions'
   },
-    h('path', { class: 'viz-line', d: pathD, fill: 'none', 'stroke-width': '2' }),
+    svgEl('path', { class: 'viz-line', d: pathD, fill: 'none', 'stroke-width': '2' }),
     ...(compPath ? [compPath] : []),
     ...circles
   );

@@ -99,6 +99,7 @@ async function main() {
     await evaluate(`document.querySelector('#view-library .library-item button[data-action="open"]').click()`);
     await waitFor(`!document.querySelector('#view-player').hidden`);
     await waitFor(`document.querySelector('.player-btn-play').textContent.trim() === 'Pause'`);
+    await new Promise((r) => setTimeout(r, 1500)); // let chunks emit so the stage shows text
     await evaluate(`document.querySelector('.player-btn-play').click()`);
     await waitFor(`document.querySelector('.player-btn-play').textContent.trim() === 'Play'`);
     await shot('player', 390, 700);

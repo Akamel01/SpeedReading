@@ -429,7 +429,8 @@ main > section:not([hidden]) { animation: view-rise var(--dur-view) var(--ease-c
   width: 100%;
   height: 200px;
 }
-.viz-chart .viz-line { stroke: var(--color-accent); }
+.viz-chart .viz-line { stroke: var(--color-text); stroke-width: 2.5; }
+.viz-chart circle { fill: var(--color-accent); stroke: var(--color-text); stroke-width: 1; }
 .viz-empty {
   color: var(--color-text);
   font-family: var(--font-ui);
@@ -448,6 +449,10 @@ main > section:not([hidden]) { animation: view-rise var(--dur-view) var(--ease-c
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
 }
 .podium-slot.placeholder { color: var(--color-text); font-style: italic; }
 .records {
