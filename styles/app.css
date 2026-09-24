@@ -361,6 +361,14 @@ label { margin-right: 10px; }
 }
 
 /* S4: quiz */
+.quiz-item {
+  background: var(--color-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  margin: var(--space-2) 0;
+}
+.quiz-list { list-style: none; padding: 0; margin: 0; }
 .quiz-question { display: block; margin: 0.5rem 0 0.15rem; }
 .quiz-answer { min-width: 12rem; }
 .quiz-verdict { font-weight: 600; margin: var(--space-1) 0; }
@@ -375,6 +383,18 @@ label { margin-right: 10px; }
 
 /* S5: log lap rows */
 .dashboard-best { border-bottom: 2px solid var(--marker); font-weight: 600; }
+/* S5: card sections + summary typography (prototype direction) */
+#view-dashboard { max-width: 1200px; margin: 0 auto; padding: var(--space-4); }
+.dashboard-section { margin-top: var(--space-4); }
+.dashboard-section h3 { font-family: var(--font-display); font-size: var(--text-lg); margin: 0 0 var(--space-2); }
+.dashboard-statrow { margin-top: var(--space-4); }
+.dashboard-summary-heading { font-size: var(--text-2xl); margin: 0; }
+.dashboard-summary-sub { color: var(--color-text-muted); margin: var(--space-1) 0 var(--space-3); }
+.dashboard-hero { font-family: var(--font-display); font-size: var(--text-2xl); margin: var(--space-3) 0; }
+.dashboard-summary-actions .btn, .dashboard-actions button { margin-right: var(--space-2); }
+.dashboard-table { background: var(--color-surface); }
+.dashboard-records .records { margin-top: 0; }
+.words-bars { max-width: 40rem; }
 /* S5: summary + cards (M-P07B) */
 .dashboard-summary-heading:focus { outline: var(--focus-width) solid var(--focus-color); outline-offset: 2px; }
 .dashboard-hero { font-family: var(--font-data); font-size: var(--text-xl); margin: var(--space-3) 0; }

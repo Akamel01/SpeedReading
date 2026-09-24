@@ -13,3 +13,7 @@
 - [ ] Card system applied; summary + log look like the direction
 - [ ] dashboard-perf <100ms; walkthrough 9f green
 - [ ] Screenshots 390/1280 reviewed
+
+## Resolution
+
+Closed 2026-09-24. Dashboard: card sections (challenges, trends, recent laps, achievements, records), summary typography (serif heading/hero, muted sub), table on surface, bars width capped; quiz: answering/review rows as cards with verdict accents. Behavior, aria, copy, perf unchanged. Evidence: dashboard-perf green (<100ms), walkthrough 100/100 GO, unit 177/177, a11y 17/17, screenshots re-shot.

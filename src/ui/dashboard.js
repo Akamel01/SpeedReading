@@ -217,13 +217,13 @@ export function createDashboard(root, { onStartSession, onExport, onImportJson, 
     const evaluated = evaluateAchievements(sessions, quizzes, {});
     const unlockedIds = evaluated.filter((a) => a.unlocked).map((a) => a.id);
     const recentUnlocks = evaluated.filter((a) => a.unlocked).sort((a, b) => b.unlockedAt - a.unlockedAt).slice(0, 3);
-    const achSection = h('div', { class: 'dashboard-achievements' },
+    const achSection = h('section', { class: 'card dashboard-section dashboard-achievements', 'aria-label': 'Achievements' },
       h('h3', {}, 'Achievements'),
       recentUnlocks.length === 0 ? h('p', {}, 'No achievements yet.') :
         h('ul', {}, ...recentUnlocks.map((a) => h('li', {}, `${a.glyph ?? ''} ${a.title}`.trim()))),
       achievementGrid(evaluated, unlockedIds));
 
-    const recSection = h('div', { class: 'dashboard-records' },
+    const recSection = h('section', { class: 'card dashboard-section dashboard-records', 'aria-label': 'Personal records' },
       h('h3', {}, 'Personal records'),
       recordsList(personalRecords(sessions, { dayMap: dm })));
 
@@ -260,13 +260,13 @@ export function createDashboard(root, { onStartSession, onExport, onImportJson, 
     const kids = [heading, summary, statRow];
     const sugg = suggestionCard(suggestion);
     if (sugg) kids.push(sugg);
-    kids.push(challenges);
+    kids.push(h('section', { class: 'card dashboard-section', 'aria-label': 'Challenges' }, challenges));
     if (sessions.length === 0) {
-      kids.push(empty);
+      kids.push(h('section', { class: 'card dashboard-section' }, empty));
     } else {
-      kids.push(trends);
+      kids.push(h('section', { class: 'card dashboard-section', 'aria-label': 'Trends' }, trends));
       if (toggle) kids.push(toggle);
-      kids.push(table);
+      kids.push(h('section', { class: 'card dashboard-section', 'aria-label': 'Recent laps' }, table));
     }
     kids.push(achSection, recSection, actions);
     root.replaceChildren(...kids);
