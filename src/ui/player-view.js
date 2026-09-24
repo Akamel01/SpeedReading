@@ -13,7 +13,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   let player = null;
   let chunkCount = 0;
   let currentWpm = 300;
-  let settings = { fontScale: 1, textAlign: 'center', orpEnabled: true, chunkSize: 2, reducedMotion: 'auto', drill: false, previewWords: 2 };
+  let settings = { fontScale: 1, textAlign: 'center', orpEnabled: true, chunkSize: 2, reducedMotion: 'auto', drill: false, previewWords: 2, readingMode: 'page' };
   let recognitionCorrect = 0;
   let recognitionTotal = 0;
   let srMode = false;
@@ -133,6 +133,8 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   // Preview drill (ADR-18): practice reading ahead beside the fixed anchor; no speed promises.
   const drillSel = makeSelect('Preview drill', 'drill', [['off', 'Off'], ['on', 'On']]);
   const previewSel = makeSelect('Preview words', 'preview', [['0', '0'], ['1', '1'], ['2', '2']]);
+  // Reading mode (ticket 29): page = guided highlight (default), rsvp = word stream.
+  const readingModeSel = makeSelect('Reading mode', 'reading-mode', [['page', 'Page (guided highlight)'], ['rsvp', 'RSVP (word stream)']]);
 
   // Session goal controls live inside the Session disclosure; app.js persists via onGoalChange.
   const goalTypeSel = makeSelect('Goal', 'goal-type', [['none', 'No goal'], ['wpm', 'Reach WPM'], ['words', 'Read words'], ['time', 'Read time']]);
@@ -222,15 +224,87 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   const pageCol = document.createElement('div');
   pageCol.className = 'player-page';
 
+  // Guided-highlight page (ticket 29): the chapter as a real page; the current
+  // chunk is highlighted and everything else is dimmed. Windowed rendering.
+  const readerPage = document.createElement('div');
+  readerPage.className = 'reader-page';
+  readerPage.setAttribute('role', 'region');
+  readerPage.setAttribute('aria-label', 'Reading page');
+  readerPage.tabIndex = 0;
+
   // Views own their subtree: replace any shell placeholder content.
   root.replaceChildren(rail, pageCol, srPanel, recognition);
-  pageCol.append(header, stage, progressBar, progress, controls, sessionDetails, helpDetails);
+  pageCol.append(header, stage, readerPage, progressBar, progress, controls, sessionDetails, helpDetails);
 
   // ---- live goal tracking ----
   let goal = null; // { type: 'wpm'|'words'|'time', target: number } | null
   let wordsShown = 0;
   let activeSince = 0;
   let activeAccumMs = 0;
+
+  // ---- guided-highlight page (windowed) ----
+  let chapterChunks = [];
+  const PAGE_WINDOW = 260; // chunks rendered either side of the focus
+  const chunkEls = new Map();
+  let pageWindow = { start: -1, end: -1 };
+  let pageIndex = 0;
+
+  function renderPageWindow(centerChunk) {
+    const start = Math.max(0, centerChunk - PAGE_WINDOW);
+    const end = Math.min(chapterChunks.length - 1, centerChunk + PAGE_WINDOW);
+    pageWindow = { start, end };
+    chunkEls.clear();
+    const frag = document.createDocumentFragment();
+    let para = document.createElement('p');
+    para.className = 'reader-para';
+    const flushPara = () => {
+      if (para.childNodes.length > 0) frag.appendChild(para);
+      para = document.createElement('p');
+      para.className = 'reader-para';
+    };
+    for (let i = start; i <= end; i++) {
+      const chunkDef = chapterChunks[i];
+      if (!chunkDef) continue;
+      const chunkEl = document.createElement('span');
+      chunkEl.className = 'reader-chunk';
+      chunkEl.dataset.chunk = String(i);
+      chunkEls.set(i, chunkEl);
+      for (const token of chunkDef.words ?? []) {
+        if (!token || token.word === '') {
+          flushPara(); // paragraph-boundary token
+          continue;
+        }
+        const w = document.createElement('span');
+        w.className = 'reader-word';
+        w.textContent = `${token.word}${token.trail ?? ''}`;
+        chunkEl.appendChild(w);
+      }
+      para.appendChild(chunkEl);
+    }
+    flushPara();
+    readerPage.replaceChildren(frag);
+  }
+
+  function paintPage(index) {
+    if (chapterChunks.length === 0) return;
+    if (index < pageWindow.start + PAGE_WINDOW / 3 || index > pageWindow.end - PAGE_WINDOW / 3) {
+      renderPageWindow(index);
+    }
+    const current = chunkEls.get(index);
+    for (const [i, el] of chunkEls) {
+      el.classList.toggle('is-current', i === index);
+      el.classList.toggle('is-read', i < index);
+    }
+    if (current) current.scrollIntoView({ block: 'center', behavior: 'auto' });
+    pageIndex = index;
+  }
+
+  readerPage.addEventListener('click', (event) => {
+    const el = event.target.closest?.('.reader-chunk');
+    if (!el || !player) return;
+    const index = Number(el.dataset.chunk);
+    if (Number.isInteger(index)) player.seek(index);
+  });
 
   function validGoal(g) {
     return !!g && ['wpm', 'words', 'time'].includes(g.type) && Number.isFinite(Number(g.target)) && Number(g.target) > 0;
@@ -269,6 +343,12 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   // ---- rendering ----
   let nextWords = []; // words following the emitted chunk, for preview + recognition
   let recognitionPending = null;
+
+  function applyReadingMode() {
+    const pageMode = settings.readingMode !== 'rsvp';
+    readerPage.hidden = !pageMode;
+    stage.hidden = pageMode;
+  }
 
   function renderChunk({ chunk, orpParts, lookahead }) {
     const words = chunk?.words ?? [];
@@ -328,6 +408,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
 
   function renderProgress(index) {
     progress.textContent = chunkCount > 0 ? `Chunk ${index + 1} / ${chunkCount}` : '';
+    paintPage(index);
     const pct = chunkCount > 0 ? Math.min(100, Math.round(((index + 1) / chunkCount) * 100)) : 0;
     progressBar.setAttribute('aria-valuenow', String(pct));
     progressFill.style.width = `${pct}%`;
@@ -366,6 +447,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   orpToggle.addEventListener('change', () => onSettingsChange?.({ orpEnabled: orpToggle.checked }));
   chunkSel.addEventListener('change', () => onSettingsChange?.({ chunkSize: Number(chunkSel.value) }));
   drillSel.addEventListener('change', () => onSettingsChange?.({ drill: drillSel.value === 'on' }));
+  readingModeSel.addEventListener('change', () => onSettingsChange?.({ readingMode: readingModeSel.value }));
   previewSel.addEventListener('change', () => onSettingsChange?.({ previewWords: Number(previewSel.value) }));
   motionSel.addEventListener('change', () => {
     onSettingsChange?.({ reducedMotion: motionSel.value });
@@ -464,7 +546,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   });
 
   // ---- public API ----
-  function start({ player: injected, text, goal: startGoal } = {}) {
+  function start({ player: injected, text, goal: startGoal, chunks: startChunks } = {}) {
     root.hidden = false;
     player = injected;
     chunkCount = 0;
@@ -472,6 +554,16 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     activeSince = 0;
     activeAccumMs = 0;
     setGoal(startGoal ?? goal);
+    // Guided-highlight page: the chapter's chunk list is the render source.
+    chapterChunks = Array.isArray(startChunks) ? startChunks : [];
+    applyReadingMode();
+    if (chapterChunks.length > 0) {
+      renderPageWindow(0);
+      paintPage(0);
+    } else {
+      readerPage.replaceChildren();
+      pageWindow = { start: -1, end: -1 };
+    }
     // Engine state is the source of truth: a restored player may start mid-stream.
     const atIndex = injected?.getState?.().index ?? 0;
     if (atIndex > 0) {
@@ -556,6 +648,8 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     motionSel.value = settings.reducedMotion;
     drillSel.value = settings.drill ? 'on' : 'off';
     previewSel.value = String(settings.previewWords ?? 2);
+    readingModeSel.value = settings.readingMode ?? 'page';
+    applyReadingMode();
     if (typeof settings.wpm === 'number') currentWpm = settings.wpm;
     speedValue.textContent = `${Math.round(currentWpm)} wpm`;
     chunkChip.textContent = `chunk ${settings.chunkSize} word${Number(settings.chunkSize) === 1 ? '' : 's'}`;

@@ -30,6 +30,7 @@ const DEFAULT_SETTINGS = {
   textAlign: 'center',
   adaptiveSuggestions: true,
   goals: {},
+  readingMode: 'page',
 };
 
 const sections = {
@@ -284,6 +285,7 @@ async function boot() {
       player: currentPlayer,
       text: { title: `${text.title} — ${currentChapter.title}`, text: currentChapter.text },
       goal: settings.goals?.[text.id] ?? null,
+      chunks: currentChunks,
     });
     if (resume) currentPlayer.pause(); // restored sessions land paused at the saved chunk
     playerView.renderRail(sessionTicks(await store.getAll('sessions')));

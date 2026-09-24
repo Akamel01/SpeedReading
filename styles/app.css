@@ -218,6 +218,42 @@ label { margin-right: 10px; }
 .player-speed .player-speed-value { min-width: 84px; text-align: center; font-size: var(--text-sm); }
 .player-chunk-chip { font-size: var(--text-xs); }
 .player-keys-hint { font-size: var(--text-xs); }
+
+/* S3: guided-highlight page (ticket 29) — real page, focus highlighted, rest dimmed */
+.reader-page {
+  max-width: 62ch;
+  margin: 0 auto;
+  max-height: 58vh;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4) 40vh;
+  background: var(--color-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  line-height: 1.95;
+  scroll-behavior: auto;
+}
+.reader-para { margin: 0 0 1.1em; }
+.reader-chunk {
+  border-radius: var(--radius-sm);
+  padding: 1px 0;
+  opacity: 0.55; /* the rest is dimmed */
+  cursor: pointer;
+  transition: opacity var(--dur-status) var(--ease-calm);
+}
+.reader-chunk.is-read { opacity: 0.32; }
+.reader-chunk.is-current {
+  opacity: 1;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent);
+  font-weight: 600;
+}
+.reader-chunk:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .reader-chunk { transition: none; }
+  .reader-page { scroll-behavior: auto; }
+}
 .player-settings { display: grid; gap: var(--space-2); margin-top: var(--space-3); font-size: 0.875rem; }
 .player-settings label { display: grid; gap: var(--space-1); white-space: nowrap; color: var(--color-text-muted); font-size: var(--text-xs); }
 

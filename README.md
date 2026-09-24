@@ -10,6 +10,7 @@ Live demo: https://akamel01.github.io/SpeedReading/ (same static app, served fro
 - Storage versions: the app store is v2 (additive over v1). v1 backups import cleanly, but a v2 export will not import into an older v1 build — **export your data (Dashboard → Export data) before updating the app**. Rejected imports never clear existing data.
 - Import formats: `.txt`, `.md` (formatting stripped, headings kept), `.epub` (DRM-free), `.docx`, `.pdf` (text-based; scanned-image PDFs need OCR), article URLs, or pasted text. Use only texts you have the rights to read; DRM-protected files are unsupported and never circumvented.
 - PDF support vendors pdf.js (Mozilla, Apache-2.0) under `vendor/pdfjs/`; it loads only when a PDF is imported.
+- Reading modes: **Page (guided highlight, default)** keeps the real page visible and sweeps a highlight at your pace — the research line for this family is modest speed gains with better comprehension; **RSVP (word stream)** is the aggressive option (strong raw speed, comprehension trade-off at high speeds). Switch in Player → Session → Reading mode.
 - Evidence notes: RSVP strong-with-comprehension-tradeoff; parafoveal preview/ORP moderate-strong; metacognitive + calibration moderate; peripheral/perceptual-span framed as calibration pathway NOT guaranteed speed boost; chunk-size 1/2/3: evidence strength is weak for 1 and 3, 2 is the default.
 - Glossary: RSVP; ORP = Optimal Recognition Point; chunking; perceptual span; baseline calibration; cloze.
 - Non-goals: accounts/cloud/social/LLM quizzes/PDF/DRM/mobile.
