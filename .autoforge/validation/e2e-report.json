@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-24T08:42:24.640Z",
+  "ranAt": "2026-09-24T08:47:32.896Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -97,7 +97,7 @@
     {
       "step": "resume: pagehide writes profile.activeSession",
       "ok": true,
-      "detail": "{\"sessionId\":\"37d7fdad-5a29-43c6-a8e4-8fadd1018463\",\"textId\":\"473348c0-1219-45b0-800e-6a8a91dd4e15\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":147,\"startedAt\":1790239289780,\"savedAt\":1790239289927}"
+      "detail": "{\"sessionId\":\"61acae99-d553-4a7a-9857-9d957f34cd24\",\"textId\":\"fdec34ea-d6a3-44cf-867a-e6ad58b3451d\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":147,\"startedAt\":1790239598114,\"savedAt\":1790239598261}"
     },
     {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
@@ -299,7 +299,7 @@
     {
       "step": "player: goal persists in settings per text",
       "ok": true,
-      "detail": "{\"8b595160-119d-4fe8-a711-be2a470a779f\":{\"type\":\"wpm\",\"target\":400}}"
+      "detail": "{\"2bfe399c-4df6-4f27-8369-85b473cbf45f\":{\"type\":\"wpm\",\"target\":400}}"
     },
     {
       "step": "player: R restarts at first chunk",
@@ -313,7 +313,7 @@
     {
       "step": "player: pause-excluded elapsed (pauses not double-counted)",
       "ok": true,
-      "detail": "{\"elapsedMs\":19299,\"wall\":20515,\"wpm\":1368,\"words\":440}"
+      "detail": "{\"elapsedMs\":19299,\"wall\":20503,\"wpm\":1368,\"words\":440}"
     },
     {
       "step": "player: WPM uses total elapsed",
@@ -394,7 +394,7 @@
     {
       "step": "quiz: Q1 key differs from the submitted wrong answer (miss is genuine)",
       "ok": true,
-      "detail": "key=\"number\""
+      "detail": "key=\"comprehension\""
     },
     {
       "step": "quiz: authoring re-scores display against edited keys (Q1 now Correct)",
@@ -561,8 +561,8 @@
     "http://127.0.0.1:8177/src/lib/zip.js",
     "http://127.0.0.1:8177/src/lib/docx.js",
     "http://127.0.0.1:8177/src/lib/pdf.js",
-    "https://example.com/",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
+    "https://example.com/",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.worker.mjs",
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/tokens.css",

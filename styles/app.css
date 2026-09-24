@@ -109,6 +109,7 @@ header nav button[aria-current="true"] {
   border-bottom: 3px solid var(--marker);
   font-weight: 600;
 }
+header nav button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Buttons: quiet by default, instant press feedback (100ms) */
 button {

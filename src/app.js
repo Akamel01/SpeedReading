@@ -38,6 +38,8 @@ const sections = {
   quiz: document.querySelector('#view-quiz'),
   dashboard: document.querySelector('#view-dashboard'),
 };
+// boot() installs the real implementation once state exists.
+let refreshNav = () => {};
 
 function show(name) {
   // Persist the current view on the body for styling/consumption by CSS/JS
@@ -49,6 +51,9 @@ function show(name) {
     const target = button.textContent.trim().toLowerCase();
     button.setAttribute('aria-current', target === name ? 'true' : 'false');
   });
+  // Player/Quiz need open content (ADR-21 fallbacks); a silent no-op reads as a
+  // broken button, so their availability is mirrored on the nav itself.
+  refreshNav();
   // Focus mode: when entering the player view, hide chrome; restore on exit
   if (name === 'player') {
     document.body.setAttribute('data-focus-mode', 'true');
@@ -88,6 +93,21 @@ async function boot() {
   // Elapsed ms restored from an interrupted-session snapshot (M-P05B): added to
   // this run's active time at record so pause-excluded totals stay exact.
   let restoredElapsedMs = 0;
+
+  // Nav availability mirror (ADR-21 fallbacks, HC-C feedback): Player needs an
+  // open text, Quiz needs a completed session.
+  refreshNav = () => {
+    for (const button of document.querySelectorAll('header nav button')) {
+      const target = button.textContent.trim().toLowerCase();
+      if (target === 'player') {
+        button.disabled = !currentText;
+        button.title = currentText ? '' : 'Open a text first';
+      } else if (target === 'quiz') {
+        button.disabled = !quizActive;
+        button.title = quizActive ? '' : 'Finish a session first';
+      }
+    }
+  };
 
   async function persistSettings() {
     await store.put('settings', settings);

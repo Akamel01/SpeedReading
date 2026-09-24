@@ -12,3 +12,10 @@
 - [ ] Browser checklist matrix executed and recorded
 - [ ] Screen-reader pass executed (or explicitly deferred with reason)
 - [ ] Verdicts recorded in report-003.md; M-P08B closed in state.json
+
+## Progress (2026-09-24)
+
+- Eyeball pass 1 found 1 P0 (invisible SVG chart — namespace bug, fixed) + podium spacing + 2 timing artifacts; shots re-taken.
+- Human walkthrough found: "looks nothing like the prototypes" + "most buttons not working" → reproduced (mobile bar overlap; prototype visuals never ported) → repair wave tickets 25–28 (all closed).
+- Eyeball pass 2 (post-repair): "generally looks ok"; remaining finding: nav Player/Quiz silent no-op → fixed (availability mirrored: disabled + tooltip until content exists).
+- Remaining for closure: final human verdict on the four areas; browser checklist matrix; screen-reader pass (deferred per ADR-16).
