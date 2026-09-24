@@ -1,6 +1,6 @@
 // RSVP player view: ORP-anchored renderer, keyboard map, SR/reduced-motion mode, settings controls.
 // Consumes an INJECTED player (src/lib/player.js); never creates timers or players.
-// Contract: createPlayerView(root, {onSessionEnd, onExit, onSettingsChange, onGoalChange})
+// Contract: createPlayerView(root, {onSessionEnd, onExit, onSettingsChange, onGoalChange, onFocusToggle})
 //   -> {start({player, text, goal}), showSrText(text), hide(), renderSettings(settings), renderRail(ticks), setGoal(goal), clearGoal()}
 
 import { announce, prefersReducedMotion } from './a11y.js';
@@ -9,7 +9,7 @@ import { splitSentences as splitSentencesLib } from '../lib/text.js';
 const SENTENCE_END = /[.!?]["')\]]*\s*$/;
 
 
-export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange, onGoalChange } = {}) {
+export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange, onGoalChange, onFocusToggle } = {}) {
   let player = null;
   let chunkCount = 0;
   let currentWpm = 300;
@@ -25,8 +25,8 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   header.className = 'player-title';
 
   // Goal chip (M-P05B): hidden unless a well-formed goal is set via setGoal().
-  const goalChip = document.createElement('p');
-  goalChip.className = 'player-goal';
+  const goalChip = document.createElement('span');
+  goalChip.className = 'player-goal chip goal';
   goalChip.hidden = true;
 
   const stage = document.createElement('div');
@@ -38,10 +38,30 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   orp.className = 'rsvp-orp';
   const right = document.createElement('span');
   right.className = 'rsvp-right';
-  stage.append(left, orp, right);
+  // Prototype: ruled stage with meta rows above/below the anchored word.
+  const stageTop = document.createElement('div');
+  stageTop.className = 'stage-meta top';
+  const stageBottom = document.createElement('div');
+  stageBottom.className = 'stage-meta bottom';
+  const stageCounts = document.createElement('span');
+  stageCounts.className = 'muted data player-counts';
+  const stageClock = document.createElement('span');
+  stageClock.className = 'muted data player-elapsed';
+  stageBottom.append(stageCounts, stageClock);
+  stageTop.append(goalChip);
+  stage.append(stageTop, left, orp, right, stageBottom);
 
   const progress = document.createElement('p');
   progress.className = 'player-progress';
+  const progressBar = document.createElement('div');
+  progressBar.className = 'player-progress-bar';
+  progressBar.setAttribute('role', 'progressbar');
+  progressBar.setAttribute('aria-valuemin', '0');
+  progressBar.setAttribute('aria-valuemax', '100');
+  progressBar.setAttribute('aria-valuenow', '0');
+  progressBar.setAttribute('aria-label', 'Chapter progress');
+  const progressFill = document.createElement('span');
+  progressBar.appendChild(progressFill);
 
   const controls = document.createElement('div');
   controls.className = 'player-controls';
@@ -58,9 +78,29 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   const playBtn = makeButton('Play', 'play');
   const nextBtn = makeButton('Next', 'next');
   const restartBtn = makeButton('Restart', 'restart');
-  const slowerBtn = makeButton('−', 'slower');
-  const fasterBtn = makeButton('+', 'faster');
+  // Speed cluster (prototype): − value + in one control.
+  const speedCluster = document.createElement('span');
+  speedCluster.className = 'player-speed';
+  const slowerBtn = document.createElement('button');
+  slowerBtn.type = 'button';
+  slowerBtn.className = 'player-btn player-btn-slower btn quiet';
+  slowerBtn.textContent = '−';
+  slowerBtn.setAttribute('aria-label', 'Slower');
+  const speedValue = document.createElement('span');
+  speedValue.className = 'player-speed-value data';
+  const fasterBtn = document.createElement('button');
+  fasterBtn.type = 'button';
+  fasterBtn.className = 'player-btn player-btn-faster btn quiet';
+  fasterBtn.textContent = '+';
+  fasterBtn.setAttribute('aria-label', 'Faster');
+  speedCluster.append(slowerBtn, speedValue, fasterBtn);
+  const chunkChip = document.createElement('span');
+  chunkChip.className = 'chip player-chunk-chip';
+  const keysHint = document.createElement('span');
+  keysHint.className = 'muted player-keys-hint';
+  keysHint.textContent = 'Space pause · ←/→ skip · +/− speed · F focus · R restart';
   const exitBtn = makeButton('Exit', 'exit');
+  controls.append(speedCluster, chunkChip, keysHint);
 
   const settingsRow = document.createElement('div');
   settingsRow.className = 'player-settings';
@@ -123,7 +163,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   const helpSummary = document.createElement('summary');
   helpSummary.textContent = '? Keys';
   const helpList = document.createElement('ul');
-  for (const [key, action] of [['Space', 'pause / resume'], ['← →', 'step chunk'], ['↑ ↓ or + −', 'speed'], ['R', 'restart'], ['Esc', 'exit'], ['?', 'this list']]) {
+  for (const [key, action] of [['Space', 'pause / resume'], ['← →', 'step chunk'], ['↑ ↓ or + −', 'speed'], ['R', 'restart'], ['F', 'focus mode'], ['Esc', 'exit'], ['?', 'this list']]) {
     const li = document.createElement('li');
     li.textContent = `${key}: ${action}`;
     helpList.appendChild(li);
@@ -169,16 +209,22 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   recognition.append(recognitionPrompt, recognitionForm, recognitionScore);
 
   // Marginalia rail (S3): one pencil tick per session, best in marker.
-  const rail = document.createElement('div');
+  const rail = document.createElement('aside');
   rail.className = 'player-rail';
   rail.setAttribute('aria-label', 'Session margin');
+  const railTitle = document.createElement('h3');
+  railTitle.className = 'player-rail-title';
+  railTitle.textContent = 'Session margin';
+  const railTicks = document.createElement('div');
+  railTicks.className = 'player-rail-ticks';
+  rail.append(railTitle, railTicks);
 
   const pageCol = document.createElement('div');
   pageCol.className = 'player-page';
 
   // Views own their subtree: replace any shell placeholder content.
   root.replaceChildren(rail, pageCol, srPanel, recognition);
-  pageCol.append(header, goalChip, stage, progress, controls, sessionDetails, helpDetails);
+  pageCol.append(header, stage, progressBar, progress, controls, sessionDetails, helpDetails);
 
   // ---- live goal tracking ----
   let goal = null; // { type: 'wpm'|'words'|'time', target: number } | null
@@ -275,8 +321,24 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     announce('Recognition check answered');
   });
 
+  function fmtClock(ms) {
+    const total = Math.max(0, Math.round(ms / 1000));
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+
   function renderProgress(index) {
     progress.textContent = chunkCount > 0 ? `Chunk ${index + 1} / ${chunkCount}` : '';
+    const pct = chunkCount > 0 ? Math.min(100, Math.round(((index + 1) / chunkCount) * 100)) : 0;
+    progressBar.setAttribute('aria-valuenow', String(pct));
+    progressFill.style.width = `${pct}%`;
+    stageCounts.textContent = chunkCount > 0 ? `${pct}% · chunk ${index + 1} of ${chunkCount}` : '';
+    // Honest estimate: remaining chunks at the current pace.
+    const liveActive = activeAccumMs + (activeSince ? Date.now() - activeSince : 0);
+    const remainingChunks = Math.max(0, chunkCount - (index + 1));
+    const estPerChunk = currentWpm > 0 ? ((Number(settings.chunkSize) || 1) * 60000) / currentWpm : 0;
+    stageClock.textContent = chunkCount > 0
+      ? `elapsed ${fmtClock(liveActive)} · left ~${fmtClock(remainingChunks * estPerChunk)}`
+      : '';
     renderGoal();
   }
 
@@ -391,6 +453,11 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
         event.preventDefault();
         helpDetails.open = !helpDetails.open;
         break;
+      case 'f':
+      case 'F':
+        event.preventDefault();
+        onFocusToggle?.();
+        break;
       default:
         break;
     }
@@ -438,6 +505,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
           activeSince = 0;
         }
         playBtn.textContent = playing ? 'Pause' : 'Play';
+        speedValue.textContent = `${Math.round(currentWpm)} wpm`;
         renderGoal();
       });
       player.on('end', () => onSessionEnd?.({
@@ -466,8 +534,8 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   }
 
   function renderRail(ticks) {
-    const hadTicks = rail.childElementCount > 0;
-    rail.replaceChildren();
+    const hadTicks = railTicks.childElementCount > 0;
+    railTicks.replaceChildren();
     const list = Array.isArray(ticks) ? ticks : [];
     list.forEach((tick, index) => {
       const mark = document.createElement('span');
@@ -475,7 +543,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
       mark.style.width = `${Math.max(6, Math.min(28, Math.round((tick.wpm ?? 0) / 40)))}px`;
       if (hadTicks) mark.style.animationDelay = `${index * 30}ms`;
       mark.title = `Lap ${index + 1}: ${Math.round(tick.wpm ?? 0)} wpm${tick.best ? ' (best)' : ''}`;
-      rail.appendChild(mark);
+      railTicks.appendChild(mark);
     });
   }
 
@@ -489,6 +557,8 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     drillSel.value = settings.drill ? 'on' : 'off';
     previewSel.value = String(settings.previewWords ?? 2);
     if (typeof settings.wpm === 'number') currentWpm = settings.wpm;
+    speedValue.textContent = `${Math.round(currentWpm)} wpm`;
+    chunkChip.textContent = `chunk ${settings.chunkSize} word${Number(settings.chunkSize) === 1 ? '' : 's'}`;
     applyStyles();
     setSrMode(settings.reducedMotion === 'on' || (settings.reducedMotion === 'auto' && prefersReducedMotion()));
     renderProgress(Math.max(0, (player?.getState?.().index ?? 1) - 1));

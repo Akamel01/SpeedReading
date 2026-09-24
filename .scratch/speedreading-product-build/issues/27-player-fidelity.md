@@ -13,3 +13,7 @@
 - [ ] Prototype structure ported (stage, rail, goal chip, session panel, keys)
 - [ ] Walkthrough 9c green; no timing/announcement regressions
 - [ ] Screenshots 390/1280 match the prototype's structure
+
+## Resolution
+
+Closed 2026-09-24. Player rebuilt to the prototype: two-column grid (page card + Session margin rail card), ruled-paper stage with anchored display-serif word and red ORP, stage meta (progress % · chunk count, elapsed/left estimate), progress bar (role=progressbar), transport row with speed cluster (− value +), chunk chip, keyboard hint, Session and ? Keys panels, F focus toggle (app-owned attribute), rail title + ticks. All test hooks preserved (.player-btn-*, .player-goal, .player-progress, .player-session, .player-help, .player-rail, .rsvp-orp, …). Evidence: walkthrough 100/100 GO; unit 177/177; a11y 17/17; gamify harness green; screenshots re-shot.

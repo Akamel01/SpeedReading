@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-24T08:30:38.840Z",
+  "ranAt": "2026-09-24T08:40:21.765Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -97,7 +97,7 @@
     {
       "step": "resume: pagehide writes profile.activeSession",
       "ok": true,
-      "detail": "{\"sessionId\":\"270ef684-cd38-4aad-85ff-bc3280e77e60\",\"textId\":\"9cb33695-612d-4536-801d-5644a92121ec\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":149,\"startedAt\":1790238583861,\"savedAt\":1790238584010}"
+      "detail": "{\"sessionId\":\"7b08e567-3536-4a13-ba7c-84ea613de005\",\"textId\":\"25651037-058e-4394-987d-2bce1c775c4e\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":145,\"startedAt\":1790239166876,\"savedAt\":1790239167021}"
     },
     {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
@@ -299,7 +299,7 @@
     {
       "step": "player: goal persists in settings per text",
       "ok": true,
-      "detail": "{\"3fac336b-7727-4f5e-8b3c-218320e8cc24\":{\"type\":\"wpm\",\"target\":400}}"
+      "detail": "{\"e9b1a8dd-a682-46e8-8470-7e8549d489fd\":{\"type\":\"wpm\",\"target\":400}}"
     },
     {
       "step": "player: R restarts at first chunk",
@@ -313,7 +313,7 @@
     {
       "step": "player: pause-excluded elapsed (pauses not double-counted)",
       "ok": true,
-      "detail": "{\"elapsedMs\":19316,\"wall\":20511,\"wpm\":1367,\"words\":440}"
+      "detail": "{\"elapsedMs\":19315,\"wall\":20506,\"wpm\":1367,\"words\":440}"
     },
     {
       "step": "player: WPM uses total elapsed",
@@ -394,7 +394,7 @@
     {
       "step": "quiz: Q1 key differs from the submitted wrong answer (miss is genuine)",
       "ok": true,
-      "detail": "key=\"flow\""
+      "detail": "key=\"testing\""
     },
     {
       "step": "quiz: authoring re-scores display against edited keys (Q1 now Correct)",

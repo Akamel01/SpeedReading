@@ -501,6 +501,14 @@ async function boot() {
       settings = { ...settings, goals, id: 'settings' };
       await persistSettings();
     },
+    onFocusToggle: () => {
+      // F key: app owns the chrome-hiding attribute; the view only requests it.
+      if (document.body.getAttribute('data-focus-mode') === 'true') {
+        document.body.removeAttribute('data-focus-mode');
+      } else {
+        document.body.setAttribute('data-focus-mode', 'true');
+      }
+    },
   });
 
   const quizView = createQuizView(sections.quiz, {
