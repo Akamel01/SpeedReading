@@ -11,3 +11,7 @@
 - [ ] Unit tests cover: empty input, monotonic in words, daily cap, repeat factor, comprehension and target bonuses, drill rate, the worked example, exact level boundaries, max-level clamp, malformed input
 - [ ] XP is integer, never negative; malformed sessions contribute zero without throwing
 - [ ] Constants match the economy decision (ADR-24)
+
+## Resolution
+
+Closed 2026-09-23 (W1). Orchestrator-repaired; review M-G01-r2 APPROVED_WITH_NOTES. Evidence: test/xp.test.js green (caps, repeat, bonuses, ladder, worked examples).

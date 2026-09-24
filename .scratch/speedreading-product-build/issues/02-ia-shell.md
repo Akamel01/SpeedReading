@@ -12,3 +12,7 @@
 - [ ] Player view hides chrome and restores on exit; Player and Quiz fallbacks intact
 - [ ] Corrupted-data banner appears when storage open fails (simulated), with a working Retry
 - [ ] `node --test` green; zero network requests after load
+
+## Resolution
+
+Closed 2026-09-23 (W1). Orchestrator-repaired; review M-P02-r2 findings fixed. Evidence: walkthrough nav/focus/corruption steps green; unit green.

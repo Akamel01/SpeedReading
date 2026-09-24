@@ -11,3 +11,7 @@
 - [ ] Facts are sorted and unique-keyed; malformed records skipped; session attribution correct
 - [ ] Reward moments are limited to the just-completed session and ordered by priority
 - [ ] Invariant tests green: XP monotonic, no double award per event, level always corresponds to XP
+
+## Resolution
+
+Closed 2026-09-23 (W1b). Orchestrator-repaired (facts/moments payloads per ADR-22). Evidence: events/invariants unit green; 176/176.

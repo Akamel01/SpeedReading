@@ -10,3 +10,7 @@
 
 - [ ] Unit tests: rotation determinism including a DST-boundary fixture; period reset via injected now; all 10 record ids present exactly once; tie rules; drill exclusions; malformed input
 - [ ] Resets are derived from timestamps — no dependence on the UI being open
+
+## Resolution
+
+Closed 2026-09-23 (W1). Orchestrator-repaired; review findings fixed. Evidence: challenges/records unit green (rotation, DST, ties, 10 ids, drill exclusion).

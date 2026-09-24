@@ -12,3 +12,7 @@
 - [ ] Spec covers every bullet in the player ticket, with a complete keyboard map
 - [ ] Direction stays swappable for the HC-A rework path
 - [ ] Human reaction recorded (HC-A) — closing criterion
+
+## Resolution
+
+Closed 2026-09-23 (HC-A approved). Artifacts: `design/player-prototype.html` + `design/player-ux.md`, overflow verified 320/1440. M-P05B builds against the frozen spec.

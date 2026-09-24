@@ -11,3 +11,7 @@
 - [ ] Prototype serves locally; every existing import path is represented (txt, md, epub, docx, pdf, paste, URL with fallback, JSON)
 - [ ] Direction stays swappable for the HC-A rework path
 - [ ] Human reaction recorded (HC-A) — closing criterion
+
+## Resolution
+
+Closed 2026-09-23 (HC-A approved). Artifacts: `design/library-prototype.html` + `design/library-ux.md`, overflow verified 320/1440. M-P06B builds against the frozen spec.
