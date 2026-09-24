@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-24T08:17:36.969Z",
+  "ranAt": "2026-09-24T08:30:38.840Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -65,7 +65,7 @@
     {
       "step": "import: calibration.txt appears in library",
       "ok": true,
-      "detail": "calibration (txt, 176 words · ~1 min · not started)Open☆Delete"
+      "detail": "Ccalibration176 words · ~1 min · not started · txt0% · 0 lapsOpen☆ FavouriteDele"
     },
     {
       "step": "import: assets/sample.txt imports (public-domain calibration text)",
@@ -75,7 +75,7 @@
     {
       "step": "ADR-3 gate: real Gutenberg EPUB imports with title + word count",
       "ok": true,
-      "detail": "Pride and Prejudice (epub, 130614 words · ~435 min · not started)Chapter 1The Project Gutenberg eBoo"
+      "detail": "PPride and Prejudice130,614 words · ~435 min · not started · epub0% · 0 lapsChapter 1The Project Gut"
     },
     {
       "step": "import: paste box creates a first-class text",
@@ -97,7 +97,7 @@
     {
       "step": "resume: pagehide writes profile.activeSession",
       "ok": true,
-      "detail": "{\"sessionId\":\"d64a1003-70c6-43c9-81d8-50c6de51c30d\",\"textId\":\"0f561d5a-5f8f-43c7-bdb9-1d336567a7dc\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":4,\"startedAt\":1790237802189,\"savedAt\":1790237802193}"
+      "detail": "{\"sessionId\":\"270ef684-cd38-4aad-85ff-bc3280e77e60\",\"textId\":\"9cb33695-612d-4536-801d-5644a92121ec\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":149,\"startedAt\":1790238583861,\"savedAt\":1790238584010}"
     },
     {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
@@ -204,7 +204,7 @@
     {
       "step": "summary: exactly one completion announcement",
       "ok": true,
-      "detail": "Session complete. 1848 wpm, — comprehension."
+      "detail": "Session complete. 1842 wpm, — comprehension."
     },
     {
       "step": "summary: unlock moment renders for fresh unlocks",
@@ -218,7 +218,7 @@
     {
       "step": "dashboard: summary shows wpm + comprehension trend",
       "ok": true,
-      "detail": "3 sessions · best 1848 wpm · avg 896 wpm · avg comprehension 0% · trend flat"
+      "detail": "3 sessions · best 1842 wpm · avg 894 wpm · avg comprehension 0% · trend flat"
     },
     {
       "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
@@ -299,7 +299,7 @@
     {
       "step": "player: goal persists in settings per text",
       "ok": true,
-      "detail": "{\"92b28118-f334-411a-be93-48707c8ceb52\":{\"type\":\"wpm\",\"target\":400}}"
+      "detail": "{\"3fac336b-7727-4f5e-8b3c-218320e8cc24\":{\"type\":\"wpm\",\"target\":400}}"
     },
     {
       "step": "player: R restarts at first chunk",
@@ -313,12 +313,12 @@
     {
       "step": "player: pause-excluded elapsed (pauses not double-counted)",
       "ok": true,
-      "detail": "{\"elapsedMs\":19332,\"wall\":20531,\"wpm\":1366,\"words\":440}"
+      "detail": "{\"elapsedMs\":19316,\"wall\":20511,\"wpm\":1367,\"words\":440}"
     },
     {
       "step": "player: WPM uses total elapsed",
       "ok": true,
-      "detail": "wpm=1366 recomputed=1366"
+      "detail": "wpm=1367 recomputed=1367"
     },
     {
       "step": "player: reload with snapshot shows Resume banner",
@@ -358,7 +358,7 @@
     {
       "step": "shelf: no-results state with Clear action",
       "ok": true,
-      "detail": "Nothing matches. Clear search"
+      "detail": "No resultsNothing matches “zzz-no-such-title”. Clear the sea"
     },
     {
       "step": "shelf: Clear restores the list",
@@ -561,8 +561,8 @@
     "http://127.0.0.1:8177/src/lib/zip.js",
     "http://127.0.0.1:8177/src/lib/docx.js",
     "http://127.0.0.1:8177/src/lib/pdf.js",
-    "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
     "https://example.com/",
+    "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.worker.mjs",
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/tokens.css",

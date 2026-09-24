@@ -209,10 +209,14 @@ async function boot() {
       const total = Array.isArray(t.chapters) && t.chapters.length > 0 ? t.chapters.length : 1;
       const done = new Set(list.map((s) => s.chapterIndex ?? 0)).size;
       const last = list[0] ?? null;
+      const scored = list.filter((s) => s.drill !== 'span' && typeof s.wpm === 'number' && typeof s.comprehensionPct === 'number');
+      const best = scored.slice().sort((a, b) => b.wpm - a.wpm)[0] ?? null;
       out[t.id] = {
         progress: list.length === 0 ? null : Math.min(1, done / total),
         lastLabel: last ? `last lap ${Math.round(last.wpm ?? 0)} wpm` : '',
         completed: last ? last.comprehensionPct !== null && last.comprehensionPct !== undefined : false,
+        laps: list.length,
+        mastery: best ? { wpm: best.wpm, comprehensionPct: best.comprehensionPct } : null,
       };
     }
     return out;
@@ -221,7 +225,7 @@ async function boot() {
   async function renderLibrary() {
     const texts = await allTexts();
     const sessions = await store.getAll('sessions');
-    libraryView.render(texts, libraryMeta(texts, sessions));
+    libraryView.render(texts, libraryMeta(texts, sessions), { sessions: sessions.length });
   }
 
   async function openText(id, chapterIndex = null, resume = null) {
@@ -646,7 +650,8 @@ async function boot() {
   playerView.renderSettings(settings);
   libraryView.setPrefs(profile?.uiPrefs?.library ?? null);
   const bootTexts = await allTexts();
-  libraryView.render(bootTexts, libraryMeta(bootTexts, await store.getAll('sessions')));
+  const bootSessions = await store.getAll('sessions');
+  libraryView.render(bootTexts, libraryMeta(bootTexts, bootSessions), { sessions: bootSessions.length });
   // Interrupted-session resume (M-P05B): snapshot with a missing textId is
   // discarded silently; otherwise offer Resume paused at the saved chunk.
   if (resumeCandidate && resumeCandidate.textId) {

@@ -13,3 +13,7 @@
 - [ ] Prototype structure ported (cards, cover, toolbar chips, import card, states)
 - [ ] Behavior unchanged (walkthrough 9d + section-2 asserts green)
 - [ ] Screenshots 390/1280 match the prototype's structure; harness green
+
+## Resolution
+
+Closed 2026-09-24. Library rebuilt to the prototype: header shell (serif title + counts + Import/JSON/Export), import card (dropzone, formats, paste row, URL row, rights copy), list card (toolbar, item cards with cover/serif title/meta/mastery badge/progress bar/laps, actions), designed empty + no-results states, delete note. Also fixed: global `text-align: var(--text-align)` leaking the player's center alignment into all views; `.field` stretching the toolbar; danger buttons to outline; stray focus ring on `main` reading as a red rule. Evidence: walkthrough 100/100 GO; unit 177/177; a11y 17/17; components harness green; screenshots re-shot.

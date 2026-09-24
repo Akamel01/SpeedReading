@@ -63,7 +63,6 @@ body {
   font-family: var(--font-ui);
   font-size: 1rem;
   line-height: 1.5;
-  text-align: var(--text-align);
 }
 
 /* S3: page typography scale */
@@ -78,6 +77,10 @@ body { padding-bottom: 0; }
   outline: 2px solid var(--focus-color);
   outline-offset: 2px;
 }
+/* Landmark container focus (focusMain on view change) is a reading-position
+   jump, not an interactive control; its full-page ring reads as a stray rule.
+   Orientation is carried by the view heading + live region instead. */
+#app:focus, #app:focus-visible { outline: none; }
 
 /* S1: translucent header material (single layer; content scrolls beneath).
    Desktop only — the mobile bottom bar sets its own material below. */
@@ -186,13 +189,93 @@ label { margin-right: 10px; }
 }
 .player-rail .rail-tick.best { background: var(--marker); height: 3px; }
 
-/* S2: shelf */
-.library-item { margin: 0.35rem 0; }
-.library-list { padding-left: 1.25rem; }
+/* S2: shelf — card system per design/library-prototype.html */
+.library-container { max-width: 1200px; margin: 0 auto; padding: var(--space-4); }
+.library-header.shell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--elev-1);
+}
+.library-heading { font-family: var(--font-display); font-size: var(--text-2xl); margin: 0; }
+.library-counts { margin: var(--space-1) 0 0; }
+.library-header-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.library-import .library-dropzone {
+  border: 2px dashed var(--rule);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: center;
+  background: var(--color-bg);
+  margin-bottom: var(--space-3);
+}
+.library-dropzone-main { margin: 0 0 var(--space-2); }
+.library-choose { text-decoration: underline; cursor: pointer; }
+.library-import-btn { display: inline-flex; align-items: center; cursor: pointer; }
+.library-paste { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-start; margin-bottom: var(--space-3); }
+.library-paste-area { flex: 1 1 20rem; min-height: 4.5rem; }
+.library-url { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.library-url-input { flex: 1 1 16rem; }
+.library-list-card { margin-top: var(--space-4); }
+.library-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  background: var(--color-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  box-shadow: var(--elev-1);
+  margin: 0 0 var(--space-3);
+}
+.library-cover {
+  width: 44px;
+  height: 60px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: linear-gradient(160deg, var(--color-bg), var(--color-surface));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+.library-title { font-family: var(--font-display); font-size: var(--text-lg); margin: 0 0 var(--space-1); }
+.library-fav-star { color: var(--color-warning); }
+.library-meta { color: var(--color-text-muted); font-size: var(--text-sm); display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+.library-badges { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.library-progress {
+  height: 6px;
+  background: var(--rule);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-top: var(--space-2);
+}
+.library-progress > span { display: block; height: 100%; background: var(--color-accent); }
+.library-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); justify-content: flex-end; align-items: center; }
+.library-actions .library-chapter { max-width: 12rem; }
+@media (max-width: 560px) {
+  .library-item { grid-template-columns: 36px minmax(0, 1fr); }
+  .library-item .library-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
 .library-empty { color: var(--color-text); }
+.library-empty-state {
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--color-bg);
+  list-style: none;
+}
+.library-empty-state h3 { font-family: var(--font-display); margin: 0 0 var(--space-2); font-size: var(--text-lg); }
 .library-empty + * { margin-top: 0.5rem; }
 .library-paste-hint { color: var(--oxblood); font-size: 0.875rem; }
-.library-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; }
+.library-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-3) 0; }
 .library-search { flex: 1 1 12rem; min-width: 0; min-height: var(--control-h-sm); }
 .library-filter, .library-sort { min-height: var(--control-h-sm); max-width: 100%; }
 .library-notice {
@@ -206,15 +289,16 @@ label { margin-right: 10px; }
   padding: var(--space-2) var(--space-3);
   margin-bottom: var(--space-3);
 }
-.library-meta { color: var(--color-text); font-size: var(--text-sm); }
 .library-badge {
   font-size: var(--text-xs);
   border: 1px solid var(--rule);
   border-radius: var(--radius-pill);
   padding: 0 var(--space-2);
-  margin-left: var(--space-2);
 }
-.library-progress { font-family: var(--font-data); font-size: var(--text-sm); margin-left: var(--space-2); }
+.library-badge-done { border-color: var(--color-success); color: var(--color-success); }
+.library-badge-mastery { border-color: var(--color-info); color: var(--color-info); }
+.library-list { list-style: none; padding: 0; margin: 0; }
+.library-delete-note { margin-top: var(--space-2); }
 .library-delete { margin-left: var(--space-2); }
 #view-library h2, #view-quiz h2, #view-dashboard h2 {
   font-family: var(--font-display);
@@ -348,7 +432,7 @@ main > section:not([hidden]) { animation: view-rise var(--dur-view) var(--ease-c
 .btn.primary { background: var(--color-accent); color: #000; }
 .btn.secondary { background: var(--color-surface); }
 .btn.quiet { background: transparent; border-color: transparent; }
-.btn.danger { background: var(--color-error); color: #fff; }
+.btn.danger { background: transparent; border-color: var(--color-error); color: var(--color-error); }
 .btn:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; }
 .btn:hover { filter: brightness(0.97); }
 .btn:active { filter: brightness(0.94); }
