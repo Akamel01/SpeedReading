@@ -1,177 +1,53 @@
 {
-  "run": "speedreading-002",
-  "objective": "Close all 19 frontier tickets (followups F01-F08,F10 + redesign-build RB1-RB3,RS1-RS7). Never stop till closed; no human go-sign (autonomous per protocol; \u00a716 only).",
-  "phase": "complete",
-  "loop": 2,
-  "planVerdict": "critic CHANGES_REQUIRED (9 findings) -> incorporated in plan.md v2.1 + work-order.json v2.1 -> auto-approved (all resolvable from evidence, no human-authority gate)",
+  "run": "speedreading-003",
+  "objective": "Transform SpeedReading into a polished, enterprise-quality speed-reading training product per the user mission 2026-09-23 (digest in .scratch/speedreading-product/spec.md): IA + design system + library/player/quiz/dashboard redesign + deep gamification + versioned persistence + event architecture + motion + a11y AA + responsive + cross-browser + perf + security + tests. Autoforge lifecycle; wayfinder map gates waves. No push/deploy unless the human asks.",
+  "phase": "execute-w5",
+  "loop": 1,
+  "priorRun": "speedreading-002 complete (all tickets closed; live https://akamel01.github.io/SpeedReading/; see decisions/log.md rows 22-34)",
+  "tracker": ".scratch/speedreading-product-build/{map.md,issues/01..21} (approved execution ticket set, single frontier) — parent map .scratch/speedreading-product/, superseded history .scratch/speedreading-gamify/",
+  "designAuthority": ".scratch/speedreading-product/issues/01-visual-world.md -> design direction artifact (PENDING HC-A)",
+  "grilling": ".autoforge/requirements/grilling.md (12 binding orchestrator decisions)",
+  "architecture": ".autoforge/architecture/decisions.md ADR-21..27 + freezes/ownership/traceability (run 003)",
+  "plan": ".autoforge/plans/plan.md v1.1 (21 modules / 15 tickets) + .autoforge/execution/work-order.json",
+  "planVerdict": "critic CHANGES_REQUIRED (2 blockers, 6 majors, 17 minors) -> all incorporated in v1.1 (HC-A/HC-B first-class blocked_by nodes; S6->P01B; P07 split into P07A/P07B; resume/rollback test ownership; harness runners named) -> auto-approved (resolvable from evidence, no §16 gate)",
   "models": {
     "orchestrator": "opencode-go/deepseek-v4.1-flash",
-    "orchestrator_registry": "not in model-registry.yaml -> unknown_model conservative (64k window, 8k max_out); inherited-role budget ~19k tok",
-    "worker_default": "opencode/gpt-5-nano (400k window, budget 80k tok)"
+    "worker_default": "opencode/gpt-5-nano (400k window, budget 80k tok)",
+    "note": "worker quality historically poor in this repo (incidents rows 6/9/29) — orchestrator review/repair budget required per wave"
+  },
+  "humanGates": {
+    "HC-A": "batched prototype review (P01A visual world, P05A player, P06A library) — one human reaction; CHANGES rework path defined in plan",
+    "HC-B": "end of W2+W3: design taste + IA/economy/persistence review (.autoforge/validation/checkpoint-b/)",
+    "HC-C": "final validation review: screenshots + browser checklist + report-003; run ends, no push"
   },
   "modules": [
-    {
-      "id": "M-RB2",
-      "group": "G0",
-      "status": "closed"
-    },
-    {
-      "id": "M-RB3",
-      "group": "G0",
-      "status": "closed"
-    },
-    {
-      "id": "M-F04",
-      "group": "G0",
-      "status": "closed"
-    },
-    {
-      "id": "M-F05",
-      "group": "G0",
-      "status": "closed"
-    },
-    {
-      "id": "M-F06A",
-      "group": "G0",
-      "status": "closed"
-    },
-    {
-      "id": "M-F07",
-      "group": "G0",
-      "status": "closed"
-    },
-    {
-      "id": "M-F08",
-      "group": "G0",
-      "status": "closed",
-      "fix_only_on_miss": true
-    },
-    {
-      "id": "M-RB1",
-      "group": "G1",
-      "status": "closed",
-      "blocked_by": []
-    },
-    {
-      "id": "M-F02",
-      "group": "G1",
-      "status": "closed",
-      "blocked_by": []
-    },
-    {
-      "id": "M-F03",
-      "group": "G2",
-      "status": "closed",
-      "blocked_by": [
-        "M-RB1"
-      ]
-    },
-    {
-      "id": "M-F01",
-      "group": "G2",
-      "status": "closed",
-      "blocked_by": [
-        "M-F03"
-      ]
-    },
-    {
-      "id": "M-F10",
-      "group": "G2",
-      "status": "closed",
-      "blocked_by": [
-        "M-F01"
-      ]
-    },
-    {
-      "id": "M-RS1",
-      "group": "G3",
-      "status": "closed",
-      "blocked_by": [
-        "M-RB3",
-        "M-F10"
-      ]
-    },
-    {
-      "id": "M-RS2",
-      "group": "G3",
-      "status": "closed",
-      "blocked_by": [
-        "M-RB2",
-        "M-RB3",
-        "M-RS1",
-        "M-F01"
-      ]
-    },
-    {
-      "id": "M-RS3",
-      "group": "G3",
-      "status": "closed",
-      "blocked_by": [
-        "M-RB1",
-        "M-RB2",
-        "M-RB3",
-        "M-RS2",
-        "M-F10"
-      ]
-    },
-    {
-      "id": "M-RS4",
-      "group": "G3",
-      "status": "closed",
-      "blocked_by": [
-        "M-RB2",
-        "M-RB3",
-        "M-RS3",
-        "M-F02"
-      ]
-    },
-    {
-      "id": "M-RS5",
-      "group": "G3",
-      "status": "closed",
-      "blocked_by": [
-        "M-RB1",
-        "M-RB2",
-        "M-RB3",
-        "M-RS4"
-      ]
-    },
-    {
-      "id": "M-RS6",
-      "group": "G3",
-      "status": "closed",
-      "blocked_by": [
-        "M-RS5"
-      ]
-    },
-    {
-      "id": "M-RS7",
-      "group": "G3",
-      "status": "closed",
-      "blocked_by": [
-        "all-agent-modules"
-      ]
-    },
-    {
-      "id": "M-F06H",
-      "group": "human",
-      "status": "ready-for-human",
-      "blocked_by": [
-        "M-F06A"
-      ],
-      "human_gate": true,
-      "note": "real screen-reader pass remains for a human"
-    }
+    { "id": "M-P01A", "group": "W1", "status": "closed", "human_gate": true, "note": "HC-A approved 2026-09-23" },
+    { "id": "M-P02", "group": "W1", "status": "closed", "note": "orchestrator-repaired; review M-P02-r2 findings fixed" },
+    { "id": "M-G01", "group": "W1", "status": "closed", "note": "orchestrator-repaired; review M-G01-r2 APPROVED_WITH_NOTES" },
+    { "id": "M-G02", "group": "W1", "status": "closed", "note": "worker fix + orchestrator repair; review findings fixed" },
+    { "id": "M-G03", "group": "W1", "status": "closed", "note": "orchestrator-repaired; review M-G03-r2 findings fixed" },
+    { "id": "M-P04", "group": "W1", "status": "closed", "note": "orchestrator-repaired; review M-P04-r2 findings fixed" },
+    { "id": "M-P03A", "group": "W1b", "status": "closed", "note": "orchestrator-repaired (real harness runner, invalid-record validation, snapshot shape); review blocker (export-import schema) + major (exit snapshot) fixed; 10/10 harness" },
+    { "id": "M-P03B", "group": "W1b", "status": "closed", "note": "orchestrator-repaired (facts/moments payloads per ADR-22); review blockers fixed; 176/176 unit" },
+    { "id": "M-P05A", "group": "W1b", "status": "closed", "human_gate": true, "note": "HC-A approved; spec design/player-ux.md frozen for M-P05B" },
+    { "id": "M-P06A", "group": "W1b", "status": "closed", "human_gate": true, "note": "HC-A approved; spec design/library-ux.md frozen for M-P06B" },
+    { "id": "M-P01B", "group": "W2", "status": "closed", "note": "review APPROVED_WITH_NOTES (non-blocking: btn hover/active, stamp variants, pre-existing undefined vars; checkpoint PNGs deferred to G04/G05 --shot)" },
+    { "id": "M-G04", "group": "W2", "status": "closed", "note": "review APPROVED; orchestrator repaired imports/checks/weekday/rarity" },
+    { "id": "M-G05", "group": "W2", "status": "closed", "note": "review APPROVED_WITH_NOTES; bucketing note fixed to ADR-25 (43 day / 19 week proven); recordsList rewired; G2 tokenized" },
+    { "id": "M-P05B", "group": "W4", "status": "closed", "note": "review APPROVED; worker vapor replaced by orchestrator implementation (goals, resume, S3, 12 walkthrough steps)" },
+    { "id": "M-P06B", "group": "W4", "status": "closed", "note": "review APPROVED_WITH_NOTES (note fixed); orchestrator implemented (shelf, dupes, caps, S2, 10 walkthrough steps)" },
+    { "id": "M-P07A", "group": "W4", "status": "closed", "note": "review APPROVED_WITH_NOTES (note addressed); orchestrator implemented (review/authoring loop, I3 guard, S4, section-6 + 9e steps)" },
+    { "id": "M-P07B", "group": "W4", "status": "closed", "note": "review APPROVED_WITH_NOTES (no changes); orchestrator implemented (summary, log cards, perf gate 25.7ms, S5, 1d/9f steps)" },
+    { "id": "M-G06", "group": "W5", "status": "closed", "note": "review APPROVED_WITH_NOTES; orchestrator implemented (HUD, reward-once, v1 guard, 9g steps)" },
+    { "id": "M-G07", "group": "W5", "status": "closed", "note": "review APPROVED; gate green (a11y 17/17, console-error assertion); 3 found-by-gate bugs fixed" },
+    { "id": "M-P08A", "group": "W5", "status": "closed", "note": "review APPROVED_WITH_NOTES (note addressed); all scripts exit 0; 12 screenshots" },
+    { "id": "M-P08B", "group": "W5", "status": "built-awaiting-hc-c", "human_gate": true, "note": "evidence complete (report-003 GO with 1 env exception); HC-C pending; no push" }
   ],
   "incidents": [],
-  "updated": "2026-09-23",
-  "verdict": "GO \u2014 validator re-validation all green (109/109, 39/39, harnesses 5+8+5, perf PASS, live tokens verified); investigator hypotheses already resolved pre-release; F06 human SR pass remains (ready-for-human by design)",
   "evidence": {
-    "unit": "node --test -> 109 pass / 0 fail",
-    "walkthrough": ".autoforge/validation/e2e-walkthrough.mjs -> 39/39 GO",
-    "harnesses": "export-import 5/5; a11y-checked 8/8 (trusted CDP input); idb-failure 5/5; quiz-authoring harness verified",
-    "release": "pushes 4328fed..ab961d2; live https://akamel01.github.io/SpeedReading/ 200 (tokens.css --folio verified)",
-    "reviews": ".autoforge/reviews/ (M-RB1..M-F10, S-chain, S-chain-r2 all APPROVED/APPROVED_WITH_NOTES)",
-    "validator": ".autoforge/validation/report-002.md (GO after REPLAN fixes)"
-  }
+    "unit": "node --test -> 109 pass / 0 fail (verified 2026-09-23, run-003 discovery)",
+    "sourceChanges": "none yet — only .autoforge/ + .scratch/ artifacts (planning complete, execution not started)"
+  },
+  "updated": "2026-09-23",
+  "notes": "Next: execute W1 (P01A prototype, P02 IA, G01-G03 engines, P04 economy impl) -> W1b (P03A/P03B domain+persistence, P05A/P06A prototypes) -> HC-A human reaction. Worker output must be independently reviewed; orchestrator repairs expected (historical worker failure class)."
 }

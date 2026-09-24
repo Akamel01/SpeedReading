@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>gamify harness</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../../styles/tokens.css" />
+  <link rel="stylesheet" href="../../styles/app.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <div id="viz-root"></div>
+
+  <script type="module">
+    import { xpCard, streakCard, challengeCard, achievementGrid, unlockMoment } from '../../src/ui/gamify-cards.js';
+    import { ACHIEVEMENTS } from '../../src/lib/achievements.js';
+    import { wpmChart, bestPodium, recordsList } from '../../src/ui/gamify-viz.js';
+    import { personalRecords, RECORD_IDS } from '../../src/lib/records.js';
+
+    const checks = [];
+    const record = (name, ok, detail) => checks.push({ name, ok: !!ok, detail: String(detail ?? '') });
+    const root = document.getElementById('root');
+
+    // ---- cards (M-G04 contract) ----
+    const xpNode = xpCard({ xp: 3800 });
+    root.appendChild(xpNode);
+    const xpBar = xpNode.querySelector('[role="progressbar"]');
+    record('xp-card name', (xpNode.getAttribute('aria-label') || '').includes('3800'), xpNode.getAttribute('aria-label'));
+    record('xp progressbar values', xpBar && xpBar.getAttribute('aria-valuenow') !== null
+      && xpBar.getAttribute('aria-valuemin') === '0' && xpBar.getAttribute('aria-valuemax') === '100',
+      `now=${xpBar && xpBar.getAttribute('aria-valuenow')}`);
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const d = new Date();
+    const localKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const dayMap = new Map([[localKey, { count: 1 }]]);
+    const streakNode = streakCard({ todayKey: localKey, dayMap });
+    root.appendChild(streakNode);
+    const cells = [...streakNode.querySelectorAll('.streak-cell')];
+    record('streak 7 text labels', cells.length === 7 && cells.every((c) => /Sun|Mon|Tue|Wed|Thu|Fri|Sat/.test(c.textContent)),
+      cells.map((c) => c.textContent).join(','));
+    record('streak today marked', cells.some((c) => c.textContent.includes('•')), cells.map((c) => c.textContent).join(','));
+
+    const chNode = challengeCard({ title: 'Read 5,000 words this week' }, { pct: 60 });
+    root.appendChild(chNode);
+    const chBar = chNode.querySelector('[role="progressbar"]');
+    record('challenge progressbar', chBar && chBar.getAttribute('aria-valuenow') === '60',
+      `now=${chBar && chBar.getAttribute('aria-valuenow')}`);
+
+    const unlocked = ['first-session', 'sessions-10'];
+    const grid = achievementGrid(ACHIEVEMENTS, unlocked);
+    root.appendChild(grid);
+    const glyphs = [...grid.querySelectorAll('.glyph')].map((g) => g.textContent);
+    record('glyph text for unlocked', glyphs.includes('1st') && glyphs.includes('10'), glyphs.join(','));
+    record('rarity classes', ['common', 'uncommon', 'rare', 'epic'].every((r) => grid.querySelector(`.rarity-${r}`)),
+      `${grid.querySelectorAll('[class*="rarity-"]').length} rarity-marked`);
+    record('hidden locked absent', !grid.textContent.includes('The return') && !grid.textContent.includes('ret'),
+      'comeback filtered while locked');
+    const grid2 = achievementGrid(ACHIEVEMENTS, [...unlocked, 'comeback']);
+    record('hidden shown once unlocked', grid2.textContent.includes('The return'), 'comeback visible after unlock');
+
+    const unlock1 = unlockMoment({ id: 'first-session', title: 'First entry' });
+    if (unlock1) root.appendChild(unlock1);
+    const unlockAgain = unlockMoment({ id: 'first-session', title: 'First entry' });
+    record('unlock once', !!unlock1 && unlockAgain === null, unlockAgain === null ? 'second call null' : 'second call rendered');
+    const btn = unlock1 && unlock1.querySelector('button.dismiss');
+    if (btn) btn.click();
+    record('unlock dismissible', !unlock1.isConnected, unlock1.isConnected ? 'still in DOM' : 'removed');
+    record('no focus theft', document.activeElement === document.body, String(document.activeElement && document.activeElement.tagName));
+
+    // ---- viz (M-G05 contract): deterministic 1000-session fixture ----
+    const mulberry32 = (a) => () => {
+      let t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const rand = mulberry32(42);
+    const base = new Date('2026-01-01T00:00:00Z').getTime();
+    const sessions = [];
+    for (let i = 0; i < 1000; i++) {
+      sessions.push({
+        id: `s${i}`,
+        endedAt: base + i * 3600 * 1000,
+        wpm: Math.floor(160 + rand() * 240),
+        comprehensionPct: Math.floor(60 + rand() * 40),
+        elapsedMs: 120000,
+        chunkSize: 1 + (i % 3),
+        words: Math.floor(300 + rand() * 700),
+      });
+    }
+    const vizDayMap = new Map();
+    for (const s of sessions) {
+      const key = new Date(s.endedAt).toISOString().slice(0, 10);
+      const e = vizDayMap.get(key) ?? { words: 0, count: 0 };
+      e.words += s.words; e.count += 1;
+      vizDayMap.set(key, e);
+    }
+
+    const vizRoot = document.getElementById('viz-root');
+    const chart = wpmChart(sessions, { maxPoints: 120 });
+    vizRoot.appendChild(chart);
+    const circles = [...chart.querySelectorAll('circle')];
+    record('chart <= 120 points', circles.length > 0 && circles.length <= 120, `${circles.length} points`);
+    record('chart point titles', circles.every((c) => { const t = c.querySelector('title'); return t && /WPM/.test(t.textContent); }),
+      `${circles.filter((c) => c.querySelector('title')).length}/${circles.length} titled`);
+    record('chart a11y', chart.getAttribute('role') === 'img' && !!chart.getAttribute('aria-label'), chart.getAttribute('aria-label'));
+
+    const chart2 = wpmChart(sessions, { maxPoints: 120 });
+    const titles1 = circles.map((c) => c.querySelector('title').textContent).join('|');
+    const titles2 = [...chart2.querySelectorAll('circle')].map((c) => c.querySelector('title').textContent).join('|');
+    record('chart deterministic', titles1 === titles2 && circles.length === chart2.querySelectorAll('circle').length,
+      `${circles.length} points, stable titles`);
+    record('chart day buckets (ADR-25)', circles.length <= 120
+      && circles.every((c) => /^\d+ WPM on \d{4}-\d{2}-\d{2}$/.test(c.querySelector('title').textContent)),
+      `${circles.length} day buckets`);
+    const wide = [];
+    for (let i = 0; i < 130; i++) {
+      wide.push({ id: `w${i}`, endedAt: base + i * 86400 * 1000, wpm: 200 + (i % 50), comprehensionPct: 80, elapsedMs: 60000, chunkSize: 1, words: 400 });
+    }
+    const wideChart = wpmChart(wide, { maxPoints: 120 });
+    const wideTitles = [...wideChart.querySelectorAll('circle')].map((c) => c.querySelector('title').textContent);
+    record('chart week buckets (ADR-25)', wideTitles.length <= 120 && wideTitles.length > 0
+      && wideTitles.every((t) => /w\/c \d{4}-\d{2}-\d{2}$/.test(t)), `${wideTitles.length} week buckets`);
+
+    const podium = bestPodium(sessions);
+    vizRoot.appendChild(podium);
+    const slots = [...podium.querySelectorAll('.podium-slot')];
+    record('podium 3 slots', slots.length === 3, slots.map((s) => s.textContent.trim().slice(0, 24)).join(' / '));
+
+    const recs = recordsList(personalRecords(sessions, { dayMap: vizDayMap }));
+    vizRoot.appendChild(recs);
+    const ids = [...recs.querySelectorAll('.record-item')].map((el) => el.getAttribute('data-id'));
+    record('records all 10 ids', RECORD_IDS.every((id) => ids.includes(id)), ids.join(','));
+    record('records label+value', [...recs.querySelectorAll('.record-item')].every((el) =>
+      (el.querySelector('.record-label') || {}).textContent && (el.querySelector('.record-value') || {}).textContent.trim()),
+      `${ids.length} items with label+value`);
+
+    const emptyChart = wpmChart([], { maxPoints: 120 });
+    record('empty state text', /No sessions yet/.test(emptyChart.textContent) && emptyChart.querySelector('svg') === null, emptyChart.textContent.trim());
+    const singleChart = wpmChart([sessions[0]], { maxPoints: 120 });
+    record('single session one point', singleChart.querySelectorAll('circle').length === 1, '1 circle');
+    record('no NaN anywhere', !/NaN/.test(vizRoot.innerHTML + emptyChart.textContent + singleChart.innerHTML), 'clean');
+
+    const emptyPodium = bestPodium([]);
+    record('podium empty placeholders', emptyPodium.querySelectorAll('.podium-slot').length === 3
+      && emptyPodium.querySelectorAll('.placeholder').length === 3, '3 placeholders');
+
+    window.__HARNESS__ = { ok: checks.every((c) => c.ok), checks };
+  </script>
+</body>
+</html>

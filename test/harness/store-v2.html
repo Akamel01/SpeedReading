@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Store v2 harness</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    li { margin: 0.25rem 0; }
+    .ok { color: #2F6B3A; }
+    .no { color: #A93226; }
+  </style>
+</head>
+<body>
+  <h1>Store v2 / profile harness</h1>
+  <ul id="results"></ul>
+  <script type="module">
+    const checks = [];
+    const record = (name, ok, detail = '') => checks.push({ name, ok, detail });
+
+    const run = async () => {
+      const { openStore } = await import('../../src/lib/store.js');
+      const { createProfileRepository } = await import('../../src/lib/profile.js');
+
+      // 1. fresh DB v2
+      const store = await openStore();
+      const fresh = await store.exportAll();
+      record('fresh DB exports schemaVersion 2 with profile key', fresh.schemaVersion === 2 && 'profile' in fresh, `schema=${fresh.schemaVersion}`);
+
+      // 2. v1 import wrapped into v2 defaults
+      const v1 = {
+        schemaVersion: 1,
+        texts: [{ id: 't1', title: 'One', chapters: [] }],
+        quizzes: [],
+        sessions: [],
+        settings: [],
+      };
+      const imported = await store.importAll(v1);
+      const afterV1 = await store.exportAll();
+      record('v1 import accepted and wrapped', imported.ok === true && afterV1.schemaVersion === 2 && afterV1.texts.some((t) => t.id === 't1'), JSON.stringify(imported));
+
+      // 3. unknown/newer schema rejected readably
+      const v3 = await store.importAll({ schemaVersion: 3, texts: [] });
+      record('schemaVersion 3 rejected with schema-mismatch', v3.ok === false && v3.error === 'schema-mismatch', JSON.stringify(v3));
+
+      // 3b. v1 with a non-array store field rejected readably (no crash)
+      const v1bad = await store.importAll({ schemaVersion: 1, texts: [], quizzes: [], sessions: [], settings: { id: 'settings' } });
+      record('v1 object-settings rejected with invalid-field', v1bad.ok === false && v1bad.error === 'invalid-field:settings', JSON.stringify(v1bad));
+
+      // 4. malformed record rejected before clearing
+      const malformed = await store.importAll({ schemaVersion: 2, texts: [{ nope: true }], quizzes: [], sessions: [], settings: [] });
+      const afterMalformed = await store.exportAll();
+      record('malformed record rejected as invalid-record:texts[0]', malformed.ok === false && /^invalid-record:texts\[0\]/.test(malformed.error), JSON.stringify(malformed));
+      record('data intact after rejected import', afterMalformed.texts.some((t) => t.id === 't1'), `texts=${afterMalformed.texts.length}`);
+
+      // 5. duplicate ids deduped
+      const dup = await store.importAll({ schemaVersion: 2, texts: [{ id: 'd1', title: 'a' }, { id: 'd1', title: 'b' }], quizzes: [], sessions: [], settings: [] });
+      const afterDup = await store.getAll('texts');
+      record('duplicate ids deduped on import', dup.ok === true && afterDup.length === 1, `texts=${afterDup.length}`);
+
+      // 6. corrupt profile -> defaults + recovered
+      await store.put('profile', { id: 'local', schemaVersion: 99, junk: true });
+      const repo = createProfileRepository(store, { profileId: 'local' });
+      const recovered = await repo.load();
+      record('corrupt profile recovers with defaults', recovered.recovered === true && Array.isArray(recovered.seenAchievements) && recovered.activeSession === null, JSON.stringify({ recovered: recovered.recovered }));
+
+      // 7. markSeen idempotent
+      await repo.markSeen(['a']);
+      await repo.markSeen(['a', 'b']);
+      const seen = await repo.load();
+      record('markSeen is idempotent', seen.seenAchievements.length === 2 && seen.seenAchievements.includes('a') && seen.seenAchievements.includes('b'), JSON.stringify(seen.seenAchievements));
+
+      // 8. active session round-trip + clear
+      const snapshot = { sessionId: 's1', textId: 't1', chapterIndex: 0, chunkIndex: 3, wpm: 300, chunkSize: 2, elapsedMs: 1000, startedAt: 1, savedAt: 2 };
+      await repo.setActiveSession(snapshot);
+      const got = await repo.getActiveSession();
+      await repo.setActiveSession(null);
+      const cleared = await repo.getActiveSession();
+      record('activeSession round-trips and clears', got && got.chunkIndex === 3 && cleared === null, JSON.stringify(got));
+
+      // 9. upgrade-abort: openStore rejects when indexedDB.open throws
+      const originalOpen = indexedDB.open.bind(indexedDB);
+      let abortRejected = false;
+      try {
+        indexedDB.open = () => { throw new Error('blocked'); };
+        try { await openStore(); } catch { abortRejected = true; }
+      } finally {
+        indexedDB.open = originalOpen;
+      }
+      const afterAbort = await store.exportAll();
+      record('upgrade-abort: openStore rejects and prior data stays readable', abortRejected === true && afterAbort.texts.length >= 1, `rejected=${abortRejected}`);
+
+      window.__HARNESS__ = { ok: checks.every((c) => c.ok), checks };
+      const list = document.getElementById('results');
+      for (const check of checks) {
+        const li = document.createElement('li');
+        li.className = check.ok ? 'ok' : 'no';
+        li.textContent = `${check.ok ? 'PASS' : 'FAIL'} ${check.name}${check.detail ? ` — ${check.detail}` : ''}`;
+        list.appendChild(li);
+      }
+    };
+
+    run().catch((error) => {
+      window.__HARNESS__ = { ok: false, checks: [{ name: 'harness crashed', ok: false, detail: error.message }] };
+    });
+  </script>
+</body>
+</html>

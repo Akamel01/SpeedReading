@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-23T13:31:35.831Z",
+  "ranAt": "2026-09-24T03:49:41.506Z",
   "results": [
     {
       "step": "keyboard: trusted Space toggles playback",
@@ -11,6 +11,34 @@
     },
     {
       "step": "announce: live region fires at sentence boundaries only",
+      "ok": true
+    },
+    {
+      "step": "gamify: review verdicts carry correct/incorrect/skipped classes",
+      "ok": true
+    },
+    {
+      "step": "gamify: reward moments render role=status",
+      "ok": true
+    },
+    {
+      "step": "gamify: progressbars expose aria-valuenow",
+      "ok": true
+    },
+    {
+      "step": "gamify: HUD is a labelled status with XP totals",
+      "ok": true
+    },
+    {
+      "step": "gamify: reward dismiss works without focus theft",
+      "ok": true
+    },
+    {
+      "step": "gamify: log cards (xp/streak/2 challenges) have accessible names",
+      "ok": true
+    },
+    {
+      "step": "gamify: records list carries all 10 ids",
       "ok": true
     },
     {
@@ -27,6 +55,14 @@
     },
     {
       "step": "contrast: body text >= 4.5:1",
+      "ok": true
+    },
+    {
+      "step": "copy: ADR-18/24 bans clean across UI surfaces",
+      "ok": true
+    },
+    {
+      "step": "motion: reduced-motion branches present for gamify surfaces (static)",
       "ok": true
     },
     {

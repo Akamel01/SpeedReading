@@ -1,16 +1,20 @@
-// Editable cloze quiz view: answering flow + authoring flow.
-// Contract: createQuizView(root, {onSave, onCancel}) -> {start(quiz), startAuthoring(quiz)}
-// quiz = {id?, textId?, chapterIndex?, createdAt?, seed?, questions: [{id, kind:'cloze', sentence, answer, accepted, candidates}]}
+// Editable cloze quiz view: answering flow + review flow + authoring flow.
+// Contract: createQuizView(root, {onSave, onCancel, onDone})
+//   -> {start(quiz), startReview(quiz, result), startAuthoring(quiz)}
+// quiz = {id?, textId?, chapterIndex?, createdAt?, seed?, questions: [{id, kind:'cloze', sentence, answer, accepted, candidates, userAnswer?}]}
+// result = {correct, total, pct, perQuestion: boolean[]}
+// review = {edited?: boolean} — authoring re-entry shows the edited keys with the answering-time score kept on screen.
 //
 // ADR-12: the answering path must NEVER read q.answer / q.accepted (no expected
-// strings in the answering DOM before save). Authoring is the only surface that
-// shows and edits expected answers, and it sets edited:true on save.
+// strings in the answering DOM before save). Review discloses expected answers only
+// after submit. Authoring is the only surface that edits expected answers, and it
+// sets edited:true on save. Neither path amends a completed session (app-owned).
 // S4: built with the shared h() DOM helper; copy frozen per the pass-3 spec.
 
 import { h } from './h.js';
 import { announce } from './a11y.js';
 
-export function createQuizView(root, { onSave, onCancel } = {}) {
+export function createQuizView(root, { onSave, onCancel, onDone } = {}) {
   let quiz = null;
   let mode = 'answering';
 
@@ -31,10 +35,47 @@ export function createQuizView(root, { onSave, onCancel } = {}) {
     saveBtn.hidden = true;
   }
 
+  function startReview(nextQuiz, result, opts = {}) {
+    mode = 'review';
+    quiz = nextQuiz;
+    const total = result?.total ?? quiz.questions.length;
+    const correct = result?.correct ?? 0;
+    const pct = result?.pct ?? 0;
+    heading.textContent = `Review: ${correct}/${total} (${pct}%)`;
+    saveBtn.hidden = true;
+    status.textContent = opts.edited === true ? 'Expected answers edited after scoring — original answers kept.' : '';
+    const editBtn = h('button', {
+      type: 'button',
+      on: { click: () => startAuthoring(quiz) },
+    }, 'Edit expected answers');
+    const doneBtn = h('button', {
+      type: 'button',
+      on: { click: () => onDone?.() },
+    }, 'Done');
+    actions.replaceChildren(editBtn, doneBtn);
+    if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+      renderEmpty();
+      return;
+    }
+    list.replaceChildren(...quiz.questions.map((question, position) => {
+      const given = (question.userAnswer ?? '').trim();
+      const verdict = given.length === 0 ? 'skipped' : (result?.perQuestion?.[position] ? 'correct' : 'incorrect');
+      const verdictEl = h('p', { class: `quiz-verdict quiz-verdict-${verdict}` },
+        verdict === 'correct' ? 'Correct' : verdict === 'incorrect' ? 'Not quite' : 'Skipped');
+      const yours = h('p', { class: 'quiz-yours' }, `Your answer: ${given.length > 0 ? given : '—'}`);
+      const key = h('p', { class: 'quiz-expected' }, `Expected: ${question.answer ?? ''}`);
+      return h('li', { class: `quiz-item quiz-review-${verdict}` },
+        h('p', { class: 'quiz-question' }, `Q${position + 1}: ${question.sentence}`),
+        yours, verdictEl, key);
+    }));
+    announce(`Quiz review: ${correct} of ${total} correct`);
+  }
+
   function start(nextQuiz) {
     mode = 'answering';
     quiz = nextQuiz;
     heading.textContent = 'Comprehension check';
+    actions.replaceChildren(saveBtn, cancelBtn);
     saveBtn.textContent = 'Check answers';
     saveBtn.hidden = false;
     status.textContent = '';
@@ -60,6 +101,7 @@ export function createQuizView(root, { onSave, onCancel } = {}) {
     mode = 'authoring';
     quiz = nextQuiz;
     heading.textContent = 'Edit expected answers';
+    actions.replaceChildren(saveBtn, cancelBtn);
     saveBtn.textContent = 'Save edits';
     saveBtn.hidden = false;
     status.textContent = '';
@@ -102,8 +144,9 @@ export function createQuizView(root, { onSave, onCancel } = {}) {
           .filter((entry) => entry.length > 0),
         edited: true,
       }));
+      status.textContent = 'Edits saved';
       status.style.opacity = '0';
-      requestAnimationFrame(() => { status.textContent = 'Edits saved'; status.style.opacity = '1'; });
+      requestAnimationFrame(() => { status.style.opacity = '1'; });
       announce('Quiz edits saved');
       onSave?.({ ...quiz, questions: editedQuestions, edited: true });
       return;
@@ -113,11 +156,12 @@ export function createQuizView(root, { onSave, onCancel } = {}) {
       ...question,
       userAnswer: inputs[position]?.value ?? '',
     }));
+    status.textContent = 'Answers saved';
     status.style.opacity = '0';
-    requestAnimationFrame(() => { status.textContent = 'Answers saved'; status.style.opacity = '1'; });
+    requestAnimationFrame(() => { status.style.opacity = '1'; });
     announce('Quiz answers saved');
     onSave?.({ ...quiz, questions: answeredQuestions, edited: false });
   });
 
-  return { start, startAuthoring };
+  return { start, startReview, startAuthoring };
 }

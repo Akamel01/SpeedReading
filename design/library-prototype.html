@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library prototype — SpeedReading</title>
+  <style>
+    :root {
+      --color-bg: #F6F4EC;
+      --color-surface: #FFFFFF;
+      --color-border: #E3DED2;
+      --color-text: #1A1815;
+      --color-text-muted: #6B6B66;
+      --color-accent: #FFDD33;
+      --color-error: #A93226;
+      --color-success: #2F6B3A;
+      --color-info: #2A5A8A;
+      --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-data: ui-monospace, "SF Mono", Menlo, monospace;
+      --radius-sm: 4px; --radius-md: 8px; --radius-lg: 14px; --radius-pill: 999px;
+      --elev-1: 0 1px 2px rgba(26,24,21,0.06);
+      --elev-2: 0 4px 12px rgba(26,24,21,0.08);
+      --control-h-sm: 32px; --control-h-md: 40px; --control-h-lg: 48px;
+      --dur-press: 100ms; --dur-status: 150ms; --dur-view: 180ms; --dur-tick: 240ms;
+      --ease-calm: cubic-bezier(0.2, 0, 0, 1);
+    }
+    * { box-sizing: border-box; min-width: 0; }
+    html, body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-ui); }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    header.shell { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+      background: rgba(246,244,236,0.92); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+      padding: 12px 16px; box-shadow: var(--elev-1); }
+    h1 { font-family: var(--font-display); font-size: 1.5rem; margin: 0; letter-spacing: -0.015em; }
+    h2 { font-family: var(--font-display); font-size: 1.1rem; margin: 0 0 8px; }
+    .muted { color: var(--color-text-muted); font-size: 0.8125rem; }
+    .data { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+    .btn { min-height: var(--control-h-md); max-width: 100%; border: 1px solid var(--color-border); background: var(--color-surface);
+      color: var(--color-text); border-radius: var(--radius-md); padding: 8px 12px; font: inherit; cursor: pointer; }
+    .btn:focus-visible { outline: 2px solid var(--color-error); outline-offset: 2px; }
+    .btn.primary { background: var(--color-accent); border-color: var(--color-accent); font-weight: 600; }
+    .btn.quiet { background: transparent; }
+    .btn.danger { color: var(--color-error); border-color: var(--color-error); background: transparent; }
+    .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+      padding: 16px; box-shadow: var(--elev-1); margin-top: 16px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--control-h-sm); padding: 4px 10px;
+      border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-surface); font-size: 0.8125rem; }
+    .chip.on { background: var(--color-accent); border-color: var(--color-accent); font-weight: 600; }
+    .field { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    input[type="search"], input[type="url"], select {
+      min-height: var(--control-h-md); max-width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      background: var(--color-surface); color: var(--color-text); padding: 8px 12px; font: inherit; }
+    input[type="search"] { flex: 1 1 200px; }
+    input[type="url"] { flex: 1 1 220px; }
+    .dropzone { border: 2px dashed var(--color-border); border-radius: var(--radius-lg); padding: 18px 14px; text-align: center; background: var(--color-bg); }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .state { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px 10px; font-size: 0.75rem; background: var(--color-surface); }
+    .state.ok { border-color: var(--color-success); color: var(--color-success); }
+    .state.bad { border-color: var(--color-error); color: var(--color-error); }
+    .state.warn { border-color: #8A5A00; color: #8A5A00; }
+    .banner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+      border: 1px solid var(--color-border); border-left: 4px solid var(--color-accent); background: var(--color-surface);
+      border-radius: var(--radius-md); padding: 10px 14px; box-shadow: var(--elev-1); margin-top: 16px; }
+    .list { display: grid; gap: 10px; margin-top: 12px; }
+    .item { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: start;
+      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+      padding: 12px; box-shadow: var(--elev-1); }
+    @media (max-width: 560px) { .item { grid-template-columns: 36px minmax(0, 1fr); } .item .actions { grid-column: 1 / -1; } }
+    .cover { width: 44px; height: 60px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);
+      background: linear-gradient(160deg, var(--color-bg), var(--color-surface)); display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 600; }
+    .title { font-family: var(--font-display); font-size: 1.05rem; margin: 0; }
+    .meta { color: var(--color-text-muted); font-size: 0.8125rem; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .progress { height: 6px; background: var(--color-border); border-radius: var(--radius-pill); overflow: hidden; margin-top: 8px; }
+    .progress > span { display: block; height: 100%; background: var(--color-accent); }
+    .actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-pill);
+      padding: 2px 8px; font-size: 0.75rem; }
+    .badge.done { border-color: var(--color-success); color: var(--color-success); }
+    .badge.mastery { border-color: var(--color-info); color: var(--color-info); }
+    .fav { color: #8A5A00; font-weight: 700; }
+    .empty { border: 1px dashed var(--color-border); border-radius: var(--radius-lg); padding: 18px; background: var(--color-bg); }
+    .empty h3 { font-family: var(--font-display); margin: 0 0 6px; font-size: 1rem; }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="shell">
+      <div>
+        <h1>Library</h1>
+        <p class="muted"><span class="data">5</span> texts · <span class="data">128,400</span> words · <span class="data">12</span> sessions</p>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="button">Import</button>
+        <button class="btn quiet" type="button">Export data</button>
+        <button class="btn quiet" type="button">Import JSON</button>
+      </div>
+    </header>
+
+    <section class="card" aria-label="Import surface">
+      <h2>Import</h2>
+      <div class="dropzone">
+        <p style="margin:0 0 6px;"><strong>Drop a file here</strong> or <label for="file" style="text-decoration:underline; cursor:pointer;">choose a file</label></p>
+        <p class="muted" style="margin:0;">.txt · .md · .epub (DRM-free) · .docx · .pdf (text-based) — up to 10 MB per file</p>
+        <input id="file" type="file" hidden />
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <input type="url" placeholder="https://example.com/article" aria-label="Article URL" />
+        <button class="btn" type="button">Fetch article</button>
+        <button class="btn quiet" type="button">Paste text</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0;">Import only texts you have the rights to read. DRM-protected files are not supported and are never circumvented. Text and progress stay in your browser; nothing is uploaded.</p>
+      <div class="states" aria-label="Import states">
+        <span class="state">idle</span>
+        <span class="state">dragging</span>
+        <span class="state">parsing…</span>
+        <span class="state ok">imported · 16 chapters</span>
+        <span class="state bad">failed — unsupported file · retry</span>
+        <span class="state warn">duplicate — already in library</span>
+      </div>
+    </section>
+
+    <div class="banner" role="status">
+      <span><strong>Resume</strong> — Tome, Chapter Two at 14% <span class="muted">(saved 2 min ago)</span></span>
+      <span class="row">
+        <button class="btn primary" type="button">Resume</button>
+        <button class="btn quiet" type="button">Dismiss</button>
+      </span>
+    </div>
+
+    <section class="card" aria-label="Library list">
+      <div class="field">
+        <input type="search" placeholder="Search titles…" aria-label="Search titles" />
+        <button class="chip on" type="button">All</button>
+        <button class="chip" type="button">Reading</button>
+        <button class="chip" type="button">Completed</button>
+        <button class="chip" type="button">Favourites</button>
+        <select aria-label="Sort">
+          <option>Recent</option><option>Title</option><option>Progress</option><option>Size</option>
+        </select>
+        <button class="btn quiet" type="button">Density: comfortable</button>
+      </div>
+
+      <div class="list">
+        <article class="item">
+          <div class="cover" aria-hidden="true">T</div>
+          <div>
+            <h3 class="title">Tome <span class="fav" title="Favourite">★</span></h3>
+            <div class="meta">
+              <span class="data">24,100 words</span><span>·</span><span>~81 min</span><span>·</span>
+              <span>Chapter Two</span><span>·</span><span>last session 2 min ago</span>
+            </div>
+            <div class="meta"><span class="badge mastery">Best 412 wpm · 82%</span></div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="42" aria-label="Reading progress 42%"><span style="width:42%"></span></div>
+            <div class="meta"><span class="data">42%</span><span>·</span><span>7 laps</span></div>
+          </div>
+          <div class="actions">
+            <select aria-label="Chapter"><option>Chapter One</option><option selected>Chapter Two</option><option>Chapter Three</option></select>
+            <button class="btn" type="button">Open</button>
+            <button class="btn quiet" type="button">Favourite</button>
+            <button class="btn danger" type="button">Delete</button>
+          </div>
+        </article>
+
+        <article class="item">
+          <div class="cover" aria-hidden="true">C</div>
+          <div>
+            <h3 class="title">Coastal Notes <span class="badge done">Completed</span></h3>
+            <div class="meta"><span class="data">8,400 words</span><span>·</span><span>~28 min</span><span>·</span><span>last session 3 days ago</span></div>
+            <div class="meta"><span class="badge mastery">Best 380 wpm · 88%</span></div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-label="Reading progress 100%"><span style="width:100%"></span></div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="button">Read again</button>
+            <button class="btn quiet" type="button">Favourite</button>
+            <button class="btn danger" type="button">Delete</button>
+          </div>
+        </article>
+
+        <article class="item">
+          <div class="cover" aria-hidden="true">A</div>
+          <div>
+            <h3 class="title">A field guide to tide pools</h3>
+            <div class="meta"><span class="data">96,000 words</span><span>·</span><span>~5 h 20 min</span><span>·</span><span>not started</span></div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Reading progress 0%"><span style="width:0%"></span></div>
+          </div>
+          <div class="actions">
+            <select aria-label="Chapter"><option selected>Introduction</option><option>The shore</option></select>
+            <button class="btn" type="button">Open</button>
+            <button class="btn quiet" type="button">Favourite</button>
+            <button class="btn danger" type="button">Delete</button>
+          </div>
+        </article>
+
+        <article class="item">
+          <div class="cover" aria-hidden="true">S</div>
+          <div>
+            <h3 class="title">Sample text</h3>
+            <div class="meta"><span class="data">3,200 words</span><span>·</span><span>~11 min</span><span>·</span><span>last session 9 days ago</span></div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="18" aria-label="Reading progress 18%"><span style="width:18%"></span></div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="button">Open</button>
+            <button class="btn quiet" type="button">Favourite</button>
+            <button class="btn danger" type="button">Delete</button>
+          </div>
+        </article>
+
+        <article class="item">
+          <div class="cover" aria-hidden="true">P</div>
+          <div>
+            <h3 class="title">Pasted article — tides</h3>
+            <div class="meta"><span class="data">1,100 words</span><span>·</span><span>~4 min</span><span>·</span><span>not started</span><span>·</span><span>pasted</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="button">Open</button>
+            <button class="btn quiet" type="button">Favourite</button>
+            <button class="btn danger" type="button">Delete</button>
+          </div>
+        </article>
+      </div>
+
+      <p class="muted" style="margin-top:10px;">Delete asks for confirmation; export your data first if you might want it back.</p>
+    </section>
+
+    <section class="card" aria-label="Empty states">
+      <h2>Empty states</h2>
+      <div class="row" style="align-items:stretch;">
+        <div class="empty" style="flex:1 1 240px;">
+          <h3>First use</h3>
+          <p class="muted" style="margin:0 0 8px;">Your library is empty. Import a text to begin your ledger.</p>
+          <button class="btn primary" type="button">Import a text</button>
+        </div>
+        <div class="empty" style="flex:1 1 240px;">
+          <h3>No results</h3>
+          <p class="muted" style="margin:0 0 8px;">Nothing matches “gulls”. Clear the search or change the filter.</p>
+          <button class="btn quiet" type="button">Clear search</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -139,9 +139,14 @@ async function importOptional(path, unavailableMessage) {
 
 // Ingest a file given name and ArrayBuffer
 // Supported: .txt/.md (utf-8) and .epub/.docx/.pdf (dynamic load)
+export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 export async function ingest({ name, arrayBuffer }) {
   const title = name.replace(/\.[^.]+$/, '');
   const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+
+  if (arrayBuffer && arrayBuffer.byteLength > MAX_IMPORT_BYTES) {
+    throw new Error(`That file is over the 10 MB import limit (${Math.round(arrayBuffer.byteLength / 1048576)} MB).`);
+  }
 
   if (ext === 'txt' || ext === 'md') {
     const decoder = new TextDecoder('utf-8');

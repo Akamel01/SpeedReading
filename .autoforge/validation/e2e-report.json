@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-23T13:31:22.172Z",
+  "ranAt": "2026-09-24T03:46:02.139Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -8,19 +8,64 @@
       "detail": "visible=1 (library)"
     },
     {
+      "step": "corrupted-data banner visible on pre-boot corruption",
+      "ok": true,
+      "detail": "banner shown"
+    },
+    {
+      "step": "corrupted-data banner offers Retry",
+      "ok": true,
+      "detail": "retry=true"
+    },
+    {
+      "step": "dataset.view: Library -> library (fallback-aware)",
+      "ok": true,
+      "detail": "dataset=\"library\""
+    },
+    {
+      "step": "focus-mode: cleared on exit to Library",
+      "ok": true,
+      "detail": "focus-mode=\"null\""
+    },
+    {
+      "step": "dataset.view: Player -> library (fallback-aware)",
+      "ok": true,
+      "detail": "dataset=\"library\""
+    },
+    {
+      "step": "dataset.view: Quiz -> library (fallback-aware)",
+      "ok": true,
+      "detail": "dataset=\"library\""
+    },
+    {
+      "step": "dataset.view: Dashboard -> dashboard (fallback-aware)",
+      "ok": true,
+      "detail": "dataset=\"dashboard\""
+    },
+    {
       "step": "nav: header buttons route to exactly one view (with fallbacks)",
       "ok": true,
       "detail": "Library->view-library | Player->view-library | Quiz->view-library | Dashboard->view-dashboard"
     },
     {
+      "step": "mobile bottom bar: fixed position and button height ≥44px",
+      "ok": true,
+      "detail": "position=fixed, height=44"
+    },
+    {
       "step": "privacy: network requests after initial load",
       "ok": true,
-      "detail": "18 requests total since load (informational)"
+      "detail": "81 requests total since load (informational)"
+    },
+    {
+      "step": "dashboard: 0-session empty state with import CTA",
+      "ok": true,
+      "detail": "No sessions yet. Import a text and run a baseline to begin. Import a text"
     },
     {
       "step": "import: calibration.txt appears in library",
       "ok": true,
-      "detail": "calibration (txt, 176 words)OpenDelete"
+      "detail": "calibration (txt, 176 words · ~1 min · not started)Open☆Delete"
     },
     {
       "step": "import: assets/sample.txt imports (public-domain calibration text)",
@@ -28,9 +73,9 @@
       "detail": "405 words"
     },
     {
-      "step": "ADR-3 gate: real Gutenberg EPUB imports with title + word count",
-      "ok": true,
-      "detail": "Pride and Prejudice (epub, 130614 words)Chapter 1The Project Gutenberg eBook of Pride and PrejudiceI"
+      "step": "ADR-3 gate: real Gutenberg EPUB",
+      "ok": false,
+      "detail": "fixture not found at /tmp/pg1342.epub (download pg1342.epub or set EPUB_PATH)"
     },
     {
       "step": "import: paste box creates a first-class text",
@@ -45,9 +90,34 @@
       "ok": true
     },
     {
+      "step": "dataset.view: player active + focus mode on",
+      "ok": true,
+      "detail": "dataset=\"player\" focus=\"true\""
+    },
+    {
+      "step": "resume: pagehide writes profile.activeSession",
+      "ok": true,
+      "detail": "{\"sessionId\":\"f562cc2c-63aa-47f0-b023-0438aa184b06\",\"textId\":\"e4447bc1-af8f-490c-bf2f-8a36b30c3382\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":158,\"startedAt\":1790221509112,\"savedAt\":1790221509270}"
+    },
+    {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
       "ok": true,
       "detail": "OPENED header=\"Test Book — Chapter Two\""
+    },
+    {
+      "step": "dataset.view: quiz active",
+      "ok": true,
+      "detail": "dataset=\"quiz\""
+    },
+    {
+      "step": "resume: session record clears profile.activeSession",
+      "ok": true,
+      "detail": "snapshot=null"
+    },
+    {
+      "step": "dataset.view: dashboard active + focus mode cleared",
+      "ok": true,
+      "detail": "dataset=\"dashboard\" focus=\"null\""
     },
     {
       "step": "chapter-picker: session carries chapter attribution",
@@ -77,7 +147,7 @@
     {
       "step": "rsvp: ORP character rendered at anchor",
       "ok": true,
-      "detail": "orp=\"n\""
+      "detail": "orp=\"a\""
     },
     {
       "step": "a11y: live region announced a sentence boundary",
@@ -87,7 +157,7 @@
     {
       "step": "span-drill: preview zone renders upcoming words beside the anchor",
       "ok": true,
-      "detail": "preview=\"1 carefully\""
+      "detail": "preview=\"verifies the\""
     },
     {
       "step": "span-drill: recognition check scores the answer",
@@ -113,6 +183,34 @@
       "ok": true
     },
     {
+      "step": "quiz: submit routes to review with score header",
+      "ok": true,
+      "detail": "Review: 0/5 (0%)"
+    },
+    {
+      "step": "quiz: review marks every wrong answer incorrect",
+      "ok": true,
+      "detail": "quiz-verdict quiz-verdict-incorrect quiz-verdict quiz-verdict-incorrect quiz-verdict quiz-verdict-incorrect quiz-verdict quiz-verdict-incorrect quiz-verdict quiz-verdict-incorrect"
+    },
+    {
+      "step": "summary: 10-section order (heading first, actions last)",
+      "ok": true,
+      "detail": "dashboard-summary-heading dashboard-summary-sub dashboard-hero dashboard-baseline gamify-unlock reward-moment reward-moment dashboard-xp dashboard-xpbar dashboard-streak dashboard-records-broken dashb"
+    },
+    {
+      "step": "summary: heading focused",
+      "ok": true
+    },
+    {
+      "step": "summary: exactly one completion announcement",
+      "ok": true,
+      "detail": "Session complete. 2119 wpm, — comprehension."
+    },
+    {
+      "step": "summary: unlock moment renders for fresh unlocks",
+      "ok": true
+    },
+    {
       "step": "dashboard: session row rendered with comprehension",
       "ok": true,
       "detail": "rows=4"
@@ -120,7 +218,7 @@
     {
       "step": "dashboard: summary shows wpm + comprehension trend",
       "ok": true,
-      "detail": "3 sessions · best 1847 wpm · avg 1153 wpm · avg comprehension 0% · trend flat"
+      "detail": "3 sessions · best 2119 wpm · avg 986 wpm · avg comprehension 0% · trend flat"
     },
     {
       "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
@@ -159,7 +257,7 @@
     {
       "step": "redesign: header material uses backdrop blur",
       "ok": true,
-      "detail": "blur(16px) saturate(1.4)"
+      "detail": "blur(16px) saturate(1.4) @1280px"
     },
     {
       "step": "redesign: margin rail renders one tick per session",
@@ -172,6 +270,10 @@
       "detail": "Lap 1"
     },
     {
+      "step": "dashboard: 1-session trend hidden with needs-4 note",
+      "ok": true
+    },
+    {
       "step": "redesign: delta column rendered beside comprehension",
       "ok": true,
       "detail": "delta=\"—\""
@@ -182,50 +284,436 @@
       "detail": "row/sticky"
     },
     {
+      "step": "player: Session panel collapsed by default",
+      "ok": true
+    },
+    {
+      "step": "player: malformed goal (empty target) keeps chip hidden, play unaffected",
+      "ok": true
+    },
+    {
+      "step": "player: goal chip shows live wpm indicator",
+      "ok": true,
+      "detail": "Goal 400 wpm · now 120"
+    },
+    {
+      "step": "player: goal persists in settings per text",
+      "ok": true,
+      "detail": "{\"fdf771be-7a75-4459-921b-15bdb0e6cafc\":{\"type\":\"wpm\",\"target\":400}}"
+    },
+    {
+      "step": "player: R restarts at first chunk",
+      "ok": true,
+      "detail": "Chunk 1 / 1"
+    },
+    {
+      "step": "player: ? toggles keyboard help",
+      "ok": true
+    },
+    {
+      "step": "player: pause-excluded elapsed (pauses not double-counted)",
+      "ok": true,
+      "detail": "{\"elapsedMs\":19298,\"wall\":20350,\"wpm\":1368,\"words\":440}"
+    },
+    {
+      "step": "player: WPM uses total elapsed",
+      "ok": true,
+      "detail": "wpm=1368 recomputed=1368"
+    },
+    {
+      "step": "player: reload with snapshot shows Resume banner",
+      "ok": true,
+      "detail": "Resume — sample, Full text at chunk 33"
+    },
+    {
+      "step": "player: resume lands paused at the saved chunk",
+      "ok": true,
+      "detail": "banner chunk=33 after=\"Chunk 33 / 33\" paused=true"
+    },
+    {
+      "step": "player: quiz-cancel clears the resume snapshot",
+      "ok": true,
+      "detail": "snapshot=null"
+    },
+    {
+      "step": "shelf: re-import detects duplicate with an Open action, no second row",
+      "ok": true,
+      "detail": "“calibration” is already in the library."
+    },
+    {
+      "step": "shelf: favourite toggles with aria-pressed",
+      "ok": true,
+      "detail": "aria-pressed=true"
+    },
+    {
+      "step": "shelf: favourite persists across reload",
+      "ok": true,
+      "detail": "aria-pressed=true"
+    },
+    {
+      "step": "shelf: Favourites filter narrows the list",
+      "ok": true,
+      "detail": "items=1"
+    },
+    {
+      "step": "shelf: no-results state with Clear action",
+      "ok": true,
+      "detail": "Nothing matches. Clear search"
+    },
+    {
+      "step": "shelf: Clear restores the list",
+      "ok": true
+    },
+    {
+      "step": "shelf: delete asks first (two-step)",
+      "ok": true,
+      "detail": "Delete “walk”? Export first if you might want it back. Delete Keep"
+    },
+    {
+      "step": "shelf: Keep cancels the delete",
+      "ok": true
+    },
+    {
+      "step": "shelf: confirm deletes the row",
+      "ok": true
+    },
+    {
+      "step": "shelf: non-http(s) URL rejected with paste fallback",
+      "ok": true
+    },
+    {
+      "step": "quiz: answering DOM discloses no expected answers (ADR-12)",
+      "ok": true,
+      "detail": "no .quiz-expected/.authoring-answer pre-submit"
+    },
+    {
+      "step": "quiz: review shows skipped + incorrect verdicts with score",
+      "ok": true,
+      "detail": "Review: 0/5 (0%) :: quiz-verdict quiz-verdict-incorrect|quiz-verdict quiz-verdict-skipped|quiz-verdict quiz-verdict-incorrect|quiz-verdict q"
+    },
+    {
+      "step": "quiz: Q1 key differs from the submitted wrong answer (miss is genuine)",
+      "ok": true,
+      "detail": "key=\"words\""
+    },
+    {
+      "step": "quiz: authoring re-scores display against edited keys (Q1 now Correct)",
+      "ok": true,
+      "detail": "Review: 1/5 (20%) :: Expected answers edited after scoring — original answers kept."
+    },
+    {
+      "step": "quiz: authoring save never amends the completed session (I3)",
+      "ok": true,
+      "detail": "session byte-identical"
+    },
+    {
+      "step": "quiz: authoring save persists edited:true on the quiz",
+      "ok": true
+    },
+    {
+      "step": "dashboard: stat row carries XP + streak cards",
+      "ok": true
+    },
+    {
+      "step": "dashboard: challenge cards always visible",
+      "ok": true
+    },
+    {
+      "step": "dashboard: two-series trend (WPM + quieter comprehension)",
+      "ok": true
+    },
+    {
+      "step": "dashboard: 30-day words bars with text labels",
+      "ok": true
+    },
+    {
+      "step": "dashboard: recent table capped (header + ≤50)",
+      "ok": true,
+      "detail": "rows=7"
+    },
+    {
+      "step": "dashboard: achievements + records sections render",
+      "ok": true
+    },
+    {
+      "step": "hud: XP>0 + level + streak across views",
+      "ok": true,
+      "detail": "91 XP · Level Leaflet · no streak yet"
+    },
+    {
+      "step": "summary: no repeat unlocks on later sessions (reward-once)",
+      "ok": true
+    },
+    {
+      "step": "summary: second visit (log) shows no unlock moment",
+      "ok": true
+    },
+    {
+      "step": "hud: hidden in player focus mode",
+      "ok": true,
+      "detail": "header display=none"
+    },
+    {
+      "step": "integration: v1 import renders without error",
+      "ok": true,
+      "detail": "legacy text + session accepted"
+    },
+    {
+      "step": "integration: v1 session renders in the log",
+      "ok": true
+    },
+    {
       "step": "privacy: zero external/telemetry network requests (only same-origin static assets)",
       "ok": true,
-      "detail": "61 requests total, all same-origin static assets; no fetch/XHR/beacon"
+      "detail": "250 requests total, all same-origin static assets; no fetch/XHR/beacon"
+    },
+    {
+      "step": "errors: zero console.error / uncaught exceptions on gamification paths",
+      "ok": true,
+      "detail": "1 total console events, none critical"
     }
   ],
-  "passed": 39,
-  "failed": 0,
+  "passed": 99,
+  "failed": 1,
   "networkRequests": [
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/tokens.css",
     "http://127.0.0.1:8177/styles/app.css",
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
     "http://127.0.0.1:8177/src/lib/pipeline.js",
     "http://127.0.0.1:8177/src/lib/article.js",
     "http://127.0.0.1:8177/src/lib/text.js",
     "http://127.0.0.1:8177/src/lib/player.js",
     "http://127.0.0.1:8177/src/lib/quiz.js",
     "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
     "http://127.0.0.1:8177/src/ui/library.js",
     "http://127.0.0.1:8177/src/ui/player-view.js",
     "http://127.0.0.1:8177/src/ui/quiz-view.js",
     "http://127.0.0.1:8177/src/ui/dashboard.js",
     "http://127.0.0.1:8177/src/ui/a11y.js",
     "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
     "http://127.0.0.1:8177/src/ui/h.js",
-    "http://127.0.0.1:8177/src/lib/epub.js",
-    "http://127.0.0.1:8177/src/lib/zip.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
     "http://127.0.0.1:8177/src/lib/docx.js",
+    "http://127.0.0.1:8177/src/lib/zip.js",
+    "http://127.0.0.1:8177/src/lib/epub.js",
     "http://127.0.0.1:8177/src/lib/pdf.js",
-    "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
     "https://example.com/",
+    "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.worker.mjs",
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/tokens.css",
     "http://127.0.0.1:8177/styles/app.css",
     "http://127.0.0.1:8177/src/app.js",
     "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
     "http://127.0.0.1:8177/src/lib/pipeline.js",
     "http://127.0.0.1:8177/src/lib/article.js",
     "http://127.0.0.1:8177/src/lib/text.js",
     "http://127.0.0.1:8177/src/lib/player.js",
     "http://127.0.0.1:8177/src/lib/quiz.js",
     "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
+    "http://127.0.0.1:8177/src/ui/library.js",
+    "http://127.0.0.1:8177/src/ui/player-view.js",
+    "http://127.0.0.1:8177/src/ui/quiz-view.js",
+    "http://127.0.0.1:8177/src/ui/dashboard.js",
+    "http://127.0.0.1:8177/src/ui/a11y.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js",
+    "http://127.0.0.1:8177/index.html",
+    "http://127.0.0.1:8177/styles/tokens.css",
+    "http://127.0.0.1:8177/styles/app.css",
+    "http://127.0.0.1:8177/src/app.js",
+    "http://127.0.0.1:8177/src/lib/store.js",
+    "http://127.0.0.1:8177/src/lib/profile.js",
+    "http://127.0.0.1:8177/src/lib/pipeline.js",
+    "http://127.0.0.1:8177/src/lib/article.js",
+    "http://127.0.0.1:8177/src/lib/text.js",
+    "http://127.0.0.1:8177/src/lib/player.js",
+    "http://127.0.0.1:8177/src/lib/quiz.js",
+    "http://127.0.0.1:8177/src/lib/metrics.js",
+    "http://127.0.0.1:8177/src/lib/events.js",
+    "http://127.0.0.1:8177/src/lib/xp.js",
+    "http://127.0.0.1:8177/src/lib/streak.js",
     "http://127.0.0.1:8177/src/ui/library.js",
     "http://127.0.0.1:8177/src/ui/player-view.js",
     "http://127.0.0.1:8177/src/ui/quiz-view.js",
@@ -233,24 +721,11 @@
     "http://127.0.0.1:8177/src/ui/a11y.js",
     "http://127.0.0.1:8177/src/lib/orp.js",
     "http://127.0.0.1:8177/src/ui/h.js",
-    "http://127.0.0.1:8177/index.html",
-    "http://127.0.0.1:8177/styles/tokens.css",
-    "http://127.0.0.1:8177/styles/app.css",
-    "http://127.0.0.1:8177/src/app.js",
-    "http://127.0.0.1:8177/src/lib/store.js",
-    "http://127.0.0.1:8177/src/lib/pipeline.js",
-    "http://127.0.0.1:8177/src/lib/article.js",
-    "http://127.0.0.1:8177/src/lib/text.js",
-    "http://127.0.0.1:8177/src/lib/player.js",
-    "http://127.0.0.1:8177/src/lib/quiz.js",
-    "http://127.0.0.1:8177/src/lib/metrics.js",
-    "http://127.0.0.1:8177/src/ui/library.js",
-    "http://127.0.0.1:8177/src/ui/player-view.js",
-    "http://127.0.0.1:8177/src/ui/quiz-view.js",
-    "http://127.0.0.1:8177/src/ui/dashboard.js",
-    "http://127.0.0.1:8177/src/ui/a11y.js",
-    "http://127.0.0.1:8177/src/lib/orp.js",
-    "http://127.0.0.1:8177/src/ui/h.js"
+    "http://127.0.0.1:8177/src/lib/achievements.js",
+    "http://127.0.0.1:8177/src/lib/challenges.js",
+    "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/gamify-cards.js",
+    "http://127.0.0.1:8177/src/ui/gamify-viz.js"
   ],
-  "verdict": "GO"
+  "verdict": "FAIL"
 }

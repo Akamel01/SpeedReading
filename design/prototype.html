@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visual Direction Prototype</title>
+  <style>
+    :root {
+      --paper: #F6F4EC;
+      --ink: #1A1815;
+      --marker: #FFDD33;
+      --pencil: #82858A;
+      --rule: #E3DED2;
+      --signature: #A93226;
+      --accent: #FFDD33;
+      --container: 100%;
+      --container-md: 720px;
+      --container-lg: 1024px;
+      --icon-sm: 12px;
+      --icon-md: 16px;
+      --icon-lg: 24px;
+      --focus: 4px;
+      --motion: 180ms;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #fff; color: var(--ink); font-family: system-ui, -apple-system, Arial, sans-serif; }
+    .wrap { max-width: var(--container); margin: 0 auto; padding: 0 16px; padding-bottom: 80px; }
+    /* Header shell (desktop) */
+    header.top { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+    header .brand { font-weight: 700; letter-spacing: .5px; }
+    nav { display: flex; gap: 16px; }
+    nav a { text-decoration: none; color: var(--ink); font-weight: 500; font-size: 14px; }
+    /* Mobile bottom tab */
+    .bottom-tab { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: 64px; background: #fff; border-top: 1px solid var(--rule); justify-content: space-around; align-items: center; }
+    .bottom-tab div { text-align: center; font-size: 10px; color: #555; }
+    .page { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 0; }
+    .panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 14px; }
+    /* Player/RSP section */
+    .player { display: grid; gap: 12px; }
+    .player .orplink { color: var(--signature); font-weight: 700; }
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .btn { border: 1px solid var(--rule); padding: 8px 12px; border-radius: 8px; background: #fff; cursor: pointer; }
+    .btn.primary { background: var(--accent); color: #1a1a1a; font-weight: 600; border: none; }
+    /* Gamification */
+    .xp, .streak { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .card { background: #fff; border: 1px solid var(--rule); border-radius: 12px; padding: 12px; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--rule); }
+    .unlock { background: #fff; color: #666; border-style: dashed; }
+    .calendar { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; line-height: 1.2; }
+    .stamps { display: flex; gap: 6px; align-items: center; }
+    .stamp { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid var(--rule); }
+    .stamp.locked { background: #eee; color: #999; }
+    .stamp.unlocked { background: var(--accent); color: #1a1a1a; }
+    /* Dashboard fragment */
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .wpm { width: 100%; height: 120px; display: block; }
+    .podium { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .podium > div { text-align: center; padding: 8px; border-radius: 8px; background: #fff; border: 1px solid var(--rule); }
+    /* Responsiveness */
+    @media (max-width: 900px) {
+      .page { grid-template-columns: 1fr; }
+      .bottom-tab { display: flex; }
+    }
+    @media (min-width: 1000px) {
+      .page { grid-template-columns: 1.1fr 0.9fr; }
+    }
+    /* Reduced motion: respect user preference by disabling most animations */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; transform: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top" aria-label="Site header">
+      <div class="brand">SpeedReading</div>
+      <nav aria-label="Main">
+        <a href="#">Home</a>
+        <a href="#">Features</a>
+        <a href="#">Docs</a>
+        <a href="#">About</a>
+      </nav>
+    </header>
+    <div class="bottom-tab" aria-label="Mobile bottom tab">
+      <div>Home</div><div>Play</div><div>Profile</div>
+    </div>
+
+    <main class="page" role="main" aria-label="Visual direction prototype">
+      <section class="panel" id="shell">
+        <h2 style="margin:0 0 8px 0; font-size:14px; color:#6B6B66;">Shell & Navigation</h2>
+        <div style="display:flex; gap:16px; align-items:center; justify-content:space-between;">
+          <div>Logo: SpeedReading</div>
+          <div class="chips" aria-label="desktop nav">
+            <span class="badge">Overview</span>
+            <span class="badge unlock">Prototype</span>
+            <span class="badge">Directions</span>
+          </div>
+        </div>
+        <p style="margin:8px 0 0 0; color:#555; font-size:12px;">Desktop navigation row; mobile bottom tab mirrors tabs.</p>
+      </section>
+      <section class="panel player" aria-label="Player RSVP region">
+        <div class="orplink">ORP Anchor</div>
+        <div class="player-desc" style="font-size:12px; color:#555;">RSVP region with controls</div>
+        <div class="controls" aria-label="player controls">
+          <button class="btn">Rewind</button>
+          <button class="btn">Play</button>
+          <button class="btn">Forward</button>
+          <button class="btn primary">RSVP Yes</button>
+        </div>
+        <div style="font-size:12px; color:#555;">Volume: <input type="range" min="0" max="100" value="70" aria-label="Volume"/></div>
+      </section>
+    
+      <section class="panel" aria-label="Gamification surface">
+        <div class="xp card" style="grid-template-columns:1fr 1fr; display:grid; gap:8px;">
+          <div>
+        <div style="font-weight:700; font-size:14px;">XP</div>
+        <div style="font-size:28px; font-weight:700; color: var(--ink); text-decoration: underline; text-decoration-color: var(--marker);">1200</div>
+            <div class="badge unlocked" style="margin-top:6px;">Level 5</div>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:14px;">Next</div>
+            <div style="font-size:14px; color:#555;">Reach 1600 XP to level up</div>
+            <div style="height:6px; background:#eee; border-radius:6px; overflow:hidden; margin-top:6px;">
+              <div style="width:40%; height:100%; background:var(--accent);"></div>
+            </div>
+          </div>
+        </div>
+        <div class="streak" style="margin-top:8px;">
+          <div class="card" style="grid-column: span 2;">
+            <strong>Streak</strong>
+            <div class="calendar" style="margin-top:6px;">Mon Tue Wed Thu Fri Sat Sun<br/> 1 2 3 4 5 6 7</div>
+          </div>
+        </div>
+        <div class="stamps" style="margin-top:8px;">
+          <span class="stamp unlocked" title="Unlocked">✓</span>
+          <span class="stamp" title="Progress">P</span>
+          <span class="stamp locked" title="Locked">LOCK</span>
+        </div>
+      </section>
+      
+      <section class="panel" aria-label="Dashboard fragment">
+        <div class="stats">
+          <div class="card" style="padding:10px;">Session: 20m | WPM: 72</div>
+          <div class="card" style="padding:10px; text-align:right;">Today: 3200 words</div>
+        </div>
+        <svg class="wpm" viewBox="0 0 320 120" width="100%" height="120" role="img" aria-label="WPM line chart">
+          <polyline fill="none" stroke="var(--ink)" stroke-width="3" points="0,100 40,90 80,70 120,85 160,60 200,65 240,40 280,50 320,30" />
+          Sorry, your browser does not support inline SVG.
+        </svg>
+        <div class="podium" aria-label="Personal best podium">
+          <div>1st<br/><strong>1200</strong></div>
+          <div>2nd<br/><strong>980</strong></div>
+          <div>3rd<br/><strong>860</strong></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer style="text-align:center; font-size:12px; color:#666; padding:20px 0;">Prototype is self-contained with no network dependencies.</footer>
+</body>
+</html>

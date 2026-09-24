@@ -19,3 +19,27 @@
 - Escalation not required; no irreversible actions identified in the frontier for this pass. If a blocker arises that blocks run completion, escalate with a clear, limited-scope go/no-go note. | - | - |
 
 Artifact path: .autoforge/requirements/grilling.md
+
+## Orchestrator decisions (binding, 2026-09-23)
+
+Griller produced options; orchestrator decides (protocol: accept/modify/reject). These are binding on the architect and planner.
+
+1. **Derived vs persisted** — Derive XP/level/streak/achievements/records from an **append-only** session+quiz history (no rollback path exists today: text deletion does not delete sessions, `src/app.js:257-260`; no session deletion UI). Persist a small `profile` record only for non-derivable state: `seenAchievements`, `activeSession` (resume), UI prefs. Tombstones deferred until session deletion exists (YAGNI). Satisfies §13 (survives; deterministic recompute) and §29 (XP cannot decrease — no decrement path).
+2. **Duplicate-award** — Idempotency key = session `id` (UUID minted once per player run, `src/app.js:136`). Quiz re-saves amend the same session record (existing pattern, `src/app.js:300-314`). Refresh mid-quiz loses only the unsaved quiz (existing behavior, acceptable; session remains with `comprehensionPct: null`). Replays are legitimate new sessions; economy caps (below) handle farming.
+3. **Challenge resets** — Local calendar boundaries computed from injected `now`: day = local midnight, week = Monday local midnight, via local date-part arithmetic (never fixed-ms addition; DST-safe). Derived, UI-independent, deterministic.
+4. **Session summary surface** — A **state of the dashboard view** (`render({summary})`), not a new top-level view; nav stays 4 items. Focus moves to the summary heading; completion announced via `role="status"`.
+5. **Multi-user seam** — Minimal: all gamification persistence flows through one `profile`/repository module (`src/lib/profile.js`) with a constant `profileId='local'` today; records gain optional `profileId`; store v2 adds a `profile` store. No backend, no auth, no speculative framework.
+6. **Persistence v2** — DB `VERSION 2`; `onupgradeneeded` is additive (existing stores untouched; `profile` added). Export `schemaVersion: 2`; import accepts 1 (wrapped into v2 defaults) and 2; unknown/newer rejected with a readable error; validate-before-clear preserved. Migration failure leaves v1 data intact (IDB upgrade is atomic) and surfaces a readable error.
+7. **Cross-browser** — Automated evidence is headless Chromium only (CDP). Safari/Firefox get a documented manual checklist (`docs/browser-checklist.md`) with explicit steps; validation reports state the limit honestly. No Playwright (deps).
+8. **Visual regression** — CDP screenshots of the 6 key surfaces captured per gate into `.autoforge/validation/screenshots/`, reviewed by the human at checkpoints. No pixel-diff tool (zero-dep PNG diff not worth it until a regression bites).
+9. **Performance** — Budget: dashboard render <100ms at 1000 sessions; chart downsamples to ≤120 points (day/week buckets); lap table shows recent 50 + aggregate toggle. `summarize` stays O(n) (fine).
+10. **Security** — No `innerHTML` anywhere (grep-enforced); all text via `textContent`/`h()`. URL import: http(s) only (existing) + response size cap (~10MB) with readable error. JSON import: shape validation before use; reject malformed. Imported content is untrusted everywhere.
+11. **No-regression inventory** — ADR-12 quiz split, ADR-7 SR/reduced-motion, ADR-18 drill + copy guardrails, ADR-11 chapter attribution, ADR-2 export/import v1, ADR-10 zero network, ADR-8 chunk policy, ADR-5 timing engine. Each wave's acceptance re-asserts its subset.
+12. **Scope / stopping points** — Waves W1–W5 (map.md §Execution workstreams). Human checkpoints: (a) prototype batch product/01+05+06, (b) end of wave 3. Deferred: automated cross-browser, pixel-diff regression, multi-user backend, notifications. Escalation only for irreversible/authority items (§16).
+
+## Human-gate items (HITL, never self-answered)
+
+- product/01 visual world reaction (prototype)
+- product/05 player UX reaction (prototype)
+- product/06 library UX reaction (prototype)
+- Design-taste calls inside waves 2/4 (checkpoint review)

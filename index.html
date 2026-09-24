@@ -9,8 +9,9 @@
 </head>
 <body>
   <!-- Shell chrome (static placeholders; no app logic wired here) -->
-  <header role="banner" aria-label="SpeedReading shell header" style="text-align:center; padding:1rem;">
+  <header role="banner" aria-label="SpeedReading shell header" style="text-align:center;">
     <h1 style="margin:0; font-size:1.25em;">SpeedReading</h1>
+    <p id="hud" class="hud" role="status" aria-label="Training totals" style="margin:.25rem 0 0; font-size:.875em;"></p>
     <!-- Simple nav controls (non-functional placeholders) -->
     <nav aria-label="Shell navigation" style="margin-top:.5rem;">
       <button type="button">Library</button>
@@ -24,7 +25,7 @@
   <div id="live-region" aria-live="polite" style="position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;"></div>
 
   <!-- App root -->
-  <main id="app" tabindex="-1" aria-label="SpeedReading app root" style="min-height:60vh; padding:1rem;">
+  <main id="app" tabindex="-1" aria-label="SpeedReading app root" style="min-height:60vh;">
     <!-- Views (sections) -->
     <section id="view-library" hidden aria-label="Library view"></section>
     <section id="view-player" hidden aria-label="Player view">
@@ -38,6 +39,12 @@
     <section id="view-quiz" hidden aria-label="Quiz view"></section>
     <section id="view-dashboard" hidden aria-label="Dashboard view"></section>
   </main>
+
+  <!-- Corrupted-data banner (shown when storage fails to open) -->
+  <div id="corrupted-banner" role="status" aria-live="polite" style="display:none; position:fixed; top:0; left:0; right:0; background:#c0392b; color:white; padding:12px; text-align:center; z-index:9999;">
+    <span class="corrupted-message">Corrupted data: failed to access storage.</span>
+    <button id="corrupted-retry" style="margin-left:12px; padding:6px 12px;" aria-label="Retry corrupted data">Retry</button>
+  </div>
 
   <!-- Static shell requires a single script tag pointing to app.js (module) -->
   <script type="module" src="./src/app.js"></script>

@@ -107,3 +107,8 @@ nodeTest('ingest: epub dynamic import loads via helper fixture', async () => {
   assert.strictEqual(res.chapters.length, 2);
   assert.strictEqual(res.chapters[0].title, 'Chapter One');
 });
+
+nodeTest('ingest: file over 10 MB rejected readably', async () => {
+  const big = new ArrayBuffer(10 * 1024 * 1024 + 1);
+  await assert.rejects(ingest({ name: 'big.txt', arrayBuffer: big }), /10 MB/);
+});

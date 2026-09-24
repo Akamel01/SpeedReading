@@ -7,6 +7,7 @@ Live demo: https://akamel01.github.io/SpeedReading/ (same static app, served fro
 - Open: http://localhost:8080/
 - Tests: node --test (requires Node >= 22.7; zero dependencies)
 - Privacy posture: no build, no backend, no accounts, no telemetry. After load there are zero network requests, except a URL import you explicitly trigger (the target site sees a normal fetch; most sites block cross-origin reads, in which case the app says so and offers the paste box). Text and progress stay in the browser. Export/import JSON is supported.
+- Storage versions: the app store is v2 (additive over v1). v1 backups import cleanly, but a v2 export will not import into an older v1 build — **export your data (Dashboard → Export data) before updating the app**. Rejected imports never clear existing data.
 - Import formats: `.txt`, `.md` (formatting stripped, headings kept), `.epub` (DRM-free), `.docx`, `.pdf` (text-based; scanned-image PDFs need OCR), article URLs, or pasted text. Use only texts you have the rights to read; DRM-protected files are unsupported and never circumvented.
 - PDF support vendors pdf.js (Mozilla, Apache-2.0) under `vendor/pdfjs/`; it loads only when a PDF is imported.
 - Evidence notes: RSVP strong-with-comprehension-tradeoff; parafoveal preview/ORP moderate-strong; metacognitive + calibration moderate; peripheral/perceptual-span framed as calibration pathway NOT guaranteed speed boost; chunk-size 1/2/3: evidence strength is weak for 1 and 3, 2 is the default.

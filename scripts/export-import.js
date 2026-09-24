@@ -132,7 +132,7 @@ async function main() {
     if (!downloaded) throw new Error('export download never appeared');
     const snapshot = JSON.parse(await readFile(downloaded, 'utf8'));
     record('export: snapshot downloads with schema + records',
-      snapshot.schemaVersion === 1 && snapshot.texts.length >= 1 && Array.isArray(snapshot.sessions),
+      snapshot.schemaVersion === 2 && snapshot.texts.length >= 1 && Array.isArray(snapshot.sessions),
       `texts=${snapshot.texts.length} sessions=${snapshot.sessions.length}`);
 
     // Wipe IDB via the real storage layer (deleteDatabase would block on the app's open connection).

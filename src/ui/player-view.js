@@ -1,7 +1,7 @@
 // RSVP player view: ORP-anchored renderer, keyboard map, SR/reduced-motion mode, settings controls.
 // Consumes an INJECTED player (src/lib/player.js); never creates timers or players.
-// Contract: createPlayerView(root, {onSessionEnd, onExit, onSettingsChange})
-//   -> {start({player, text}), showSrText(text), hide(), renderSettings(settings)}
+// Contract: createPlayerView(root, {onSessionEnd, onExit, onSettingsChange, onGoalChange})
+//   -> {start({player, text, goal}), showSrText(text), hide(), renderSettings(settings), renderRail(ticks), setGoal(goal), clearGoal()}
 
 import { announce, prefersReducedMotion } from './a11y.js';
 import { splitSentences as splitSentencesLib } from '../lib/text.js';
@@ -9,7 +9,7 @@ import { splitSentences as splitSentencesLib } from '../lib/text.js';
 const SENTENCE_END = /[.!?]["')\]]*\s*$/;
 
 
-export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange } = {}) {
+export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange, onGoalChange } = {}) {
   let player = null;
   let chunkCount = 0;
   let currentWpm = 300;
@@ -23,6 +23,11 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
   // ---- DOM (classes only; root is #view-player) ----
   const header = document.createElement('h2');
   header.className = 'player-title';
+
+  // Goal chip (M-P05B): hidden unless a well-formed goal is set via setGoal().
+  const goalChip = document.createElement('p');
+  goalChip.className = 'player-goal';
+  goalChip.hidden = true;
 
   const stage = document.createElement('div');
   stage.className = 'rsvp-stage';
@@ -52,6 +57,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
   const prevBtn = makeButton('Prev', 'prev');
   const playBtn = makeButton('Play', 'play');
   const nextBtn = makeButton('Next', 'next');
+  const restartBtn = makeButton('Restart', 'restart');
   const slowerBtn = makeButton('−', 'slower');
   const fasterBtn = makeButton('+', 'faster');
   const exitBtn = makeButton('Exit', 'exit');
@@ -87,6 +93,42 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
   // Preview drill (ADR-18): practice reading ahead beside the fixed anchor; no speed promises.
   const drillSel = makeSelect('Preview drill', 'drill', [['off', 'Off'], ['on', 'On']]);
   const previewSel = makeSelect('Preview words', 'preview', [['0', '0'], ['1', '1'], ['2', '2']]);
+
+  // Session goal controls live inside the Session disclosure; app.js persists via onGoalChange.
+  const goalTypeSel = makeSelect('Goal', 'goal-type', [['none', 'No goal'], ['wpm', 'Reach WPM'], ['words', 'Read words'], ['time', 'Read time']]);
+  const goalTargetInput = document.createElement('input');
+  goalTargetInput.type = 'number';
+  goalTargetInput.min = '1';
+  goalTargetInput.className = 'player-setting-goal-target';
+  goalTargetInput.setAttribute('aria-label', 'Goal target');
+  goalTargetInput.placeholder = 'target';
+  goalTypeSel.closest('label').appendChild(goalTargetInput);
+  const goalApply = document.createElement('button');
+  goalApply.type = 'button';
+  goalApply.textContent = 'Set goal';
+  goalApply.className = 'player-btn player-btn-goal';
+  goalApply.setAttribute('aria-label', 'Set session goal');
+  goalTypeSel.closest('label').appendChild(goalApply);
+
+  // Progressive disclosure: Session panel collapsed by default (frozen spec).
+  const sessionDetails = document.createElement('details');
+  sessionDetails.className = 'player-session';
+  const sessionSummary = document.createElement('summary');
+  sessionSummary.textContent = 'Session';
+  sessionDetails.append(sessionSummary, settingsRow);
+
+  // Keyboard map (? key toggles).
+  const helpDetails = document.createElement('details');
+  helpDetails.className = 'player-help';
+  const helpSummary = document.createElement('summary');
+  helpSummary.textContent = '? Keys';
+  const helpList = document.createElement('ul');
+  for (const [key, action] of [['Space', 'pause / resume'], ['← →', 'step chunk'], ['↑ ↓ or + −', 'speed'], ['R', 'restart'], ['Esc', 'exit'], ['?', 'this list']]) {
+    const li = document.createElement('li');
+    li.textContent = `${key}: ${action}`;
+    helpList.appendChild(li);
+  }
+  helpDetails.append(helpSummary, helpList);
 
   // Screen-reader / reduced-motion manual mode
   const srPanel = document.createElement('div');
@@ -136,7 +178,47 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
 
   // Views own their subtree: replace any shell placeholder content.
   root.replaceChildren(rail, pageCol, srPanel, recognition);
-  pageCol.append(header, stage, progress, controls, settingsRow);
+  pageCol.append(header, goalChip, stage, progress, controls, sessionDetails, helpDetails);
+
+  // ---- live goal tracking ----
+  let goal = null; // { type: 'wpm'|'words'|'time', target: number } | null
+  let wordsShown = 0;
+  let activeSince = 0;
+  let activeAccumMs = 0;
+
+  function validGoal(g) {
+    return !!g && ['wpm', 'words', 'time'].includes(g.type) && Number.isFinite(Number(g.target)) && Number(g.target) > 0;
+  }
+
+  function goalProgressText() {
+    if (!validGoal(goal)) return '';
+    const target = Number(goal.target);
+    if (goal.type === 'wpm') return `Goal ${target} wpm · now ${Math.round(currentWpm)}`;
+    if (goal.type === 'words') return `Goal ${target} words · read ${wordsShown}`;
+    const mins = (activeAccumMs / 60000).toFixed(1);
+    return `Goal ${target} min · active ${mins}`;
+  }
+
+  function renderGoal() {
+    if (!validGoal(goal)) {
+      goalChip.hidden = true;
+      goalChip.textContent = '';
+      return;
+    }
+    goalChip.hidden = false;
+    goalChip.textContent = goalProgressText();
+  }
+
+  function setGoal(next) {
+    goal = validGoal(next) ? { type: next.type, target: Number(next.target) } : null;
+    goalTypeSel.value = goal ? goal.type : 'none';
+    goalTargetInput.value = goal ? String(goal.target) : '';
+    renderGoal();
+  }
+
+  function clearGoal() {
+    setGoal(null);
+  }
 
   // ---- rendering ----
   let nextWords = []; // words following the emitted chunk, for preview + recognition
@@ -144,6 +226,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
 
   function renderChunk({ chunk, orpParts, lookahead }) {
     const words = chunk?.words ?? [];
+    wordsShown += words.length;
     const parts = Array.isArray(orpParts) ? orpParts : [];
     nextWords = Array.isArray(lookahead) ? lookahead.map((word) => ({ word })) : [];
     const first = parts[0] ?? { left: '', orp: words[0]?.word ?? '', right: '' };
@@ -194,6 +277,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
 
   function renderProgress(index) {
     progress.textContent = chunkCount > 0 ? `Chunk ${index + 1} / ${chunkCount}` : '';
+    renderGoal();
   }
 
   function applyStyles() {
@@ -226,10 +310,30 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
     setSrMode(motionSel.value === 'on' || (motionSel.value === 'auto' && prefersReducedMotion()));
   });
 
+  goalApply.addEventListener('click', () => {
+    if (goalTypeSel.value === 'none') {
+      setGoal(null);
+      onGoalChange?.(null);
+      return;
+    }
+    const next = { type: goalTypeSel.value, target: Number(goalTargetInput.value) };
+    if (!validGoal(next)) {
+      goalTargetInput.setAttribute('aria-invalid', 'true');
+      return;
+    }
+    goalTargetInput.removeAttribute('aria-invalid');
+    setGoal(next);
+    onGoalChange?.(next);
+  });
+
   // ---- transport ----
   playBtn.addEventListener('click', () => player?.toggle());
   prevBtn.addEventListener('click', () => player?.step(-1));
   nextBtn.addEventListener('click', () => player?.step(1));
+  restartBtn.addEventListener('click', () => {
+    player?.seek(0);
+    player?.play();
+  });
   slowerBtn.addEventListener('click', () => onSettingsChange?.({ wpm: Math.max(60, currentWpm - 25) }));
   fasterBtn.addEventListener('click', () => onSettingsChange?.({ wpm: currentWpm + 25 }));
   exitBtn.addEventListener('click', () => {
@@ -277,16 +381,36 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
         onExit?.();
         hide();
         break;
+      case 'r':
+      case 'R':
+        event.preventDefault();
+        player?.seek(0);
+        player?.play();
+        break;
+      case '?':
+        event.preventDefault();
+        helpDetails.open = !helpDetails.open;
+        break;
       default:
         break;
     }
   });
 
   // ---- public API ----
-  function start({ player: injected, text }) {
+  function start({ player: injected, text, goal: startGoal } = {}) {
     root.hidden = false;
     player = injected;
     chunkCount = 0;
+    wordsShown = 0;
+    activeSince = 0;
+    activeAccumMs = 0;
+    setGoal(startGoal ?? goal);
+    // Engine state is the source of truth: a restored player may start mid-stream.
+    const atIndex = injected?.getState?.().index ?? 0;
+    if (atIndex > 0) {
+      chunkCount = atIndex + 1;
+      renderProgress(atIndex);
+    }
     recognitionCorrect = 0;
     recognitionTotal = 0;
     recognitionPending = null;
@@ -306,7 +430,15 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
       });
       player.on('state', ({ playing, wpm }) => {
         currentWpm = wpm ?? currentWpm;
+        const now = Date.now();
+        if (playing) {
+          if (!activeSince) activeSince = now;
+        } else if (activeSince) {
+          activeAccumMs += now - activeSince;
+          activeSince = 0;
+        }
         playBtn.textContent = playing ? 'Pause' : 'Play';
+        renderGoal();
       });
       player.on('end', () => onSessionEnd?.({
         endedAt: Date.now(),
@@ -326,6 +458,10 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
 
   function hide() {
     root.hidden = true;
+    if (activeSince) {
+      activeAccumMs += Date.now() - activeSince;
+      activeSince = 0;
+    }
     player?.pause();
   }
 
@@ -361,5 +497,5 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange 
   applyStyles();
   root.hidden = true;
 
-  return { start, showSrText, hide, renderSettings, renderRail };
+  return { start, showSrText, hide, renderSettings, renderRail, setGoal, clearGoal };
 }

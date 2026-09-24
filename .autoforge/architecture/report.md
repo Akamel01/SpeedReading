@@ -1,58 +1,102 @@
-# Architecture Report — run speedreading-002 "close all 19 tickets"
+# Architecture Report — run speedreading-003 (product transformation)
 
-Authority: tracker-index (19 frontier) + ticket briefs + grilling run-002 + ADR-1..10. Vocabulary: `codebase-design` (module/interface/seam/depth). Constraint: ponytail — smallest correct change; no speculative seams.
-Frozen redesign spec: `.scratch/speedreading-redesign/design/` (`tokens.md` + `architecture.md` + `pass-3-*.md`; pass-3 wins on conflict, `tokens.md` wins on values).
+Authority: user mission digest `.scratch/speedreading-product/spec.md` (§cited); binding orchestrator decisions `.autoforge/requirements/grilling.md` §"Orchestrator decisions"; wayfinder map `.scratch/speedreading-product/map.md`; gamify wave 1 `.scratch/speedreading-gamify/`. Constraints: ADR-1 (no build/deps/React), ADR-2/6 (IndexedDB + `node --test`/CDP), ADR-7 (a11y wins ties), ADR-8 (chunk policy), ADR-10 (zero network), ADR-12 (quiz split), ADR-18 (copy), ADR-19 (tokens `:root`-only, app.css consumes). No new runtime dependency. Existing functionality never removed. Single user; multi-user only as the minimal `profileId` seam.
 
-## 1. Chapter picker (F01)
-- Options: (a) chapter state in composition root + additive session fields; (b) chapter-aware store wrapper / new module.
-- Recommend (a): `currentChapter` already lives in `app.js` — add a chapter-list control (library/player) that re-runs the existing `openText` path with a chosen chapter. Session delta: `chapterIndex` + `chapterTitle` (denormalized for dashboard rows without a texts join). Quiz record: add `chapterIndex`. Quiz generation stays chapter-scoped: `generateQuiz(currentChapter.text)` unchanged.
-- Compatibility: `textId` remains the grouping key; dashboard/summarize untouched; old records (`chapterIndex: undefined`) render as "chapter unknown", never filtered out.
+Decisions: `.autoforge/architecture/decisions.md` §12 (ADR-21..27) + §13 freezes + §14 deltas + §15 ownership + §16 traceability.
 
-## 2. Quiz authoring (F02)
-- Options: (a) new view + route; (b) second mode inside `quiz-view.js`.
-- Recommend (b): one module, two render paths — `renderAuthoring(quiz)` (edits `answer`/`accepted`) vs `renderAnswering(quiz)` (writes only `userAnswer`). The seam already exists: answering maps inputs→`userAnswer` and never reads `accepted` (quiz-view.js:83-91). Data shape: in-place edit + existing `edited` flag (no parallel copy record — a copy would double the quiz lifecycle for one boolean of information).
-- Leak guard: test asserts answering DOM + storage contain no expected-answer strings; review rule: answering path may not reference `q.answer`/`q.accepted`.
+## 1. Current state (from discovery/report.md + source skim)
 
-## 3. WPM active-time pure function (F03)
-- Options: (a) extract to `metrics.js` as pure function; (b) class/clock-injected service.
-- Recommend (a): `activeMs(events) -> ms` in `src/lib/metrics.js`, `events = [{at, expectedMs}]`, per-gap rule `min(gap, expectedMs*4+250)` — the exact formula inline in `app.js:100-107` today. Cap values frozen (document, don't retune).
-- Caller contract: `app.js` collects `{at: performance.now(), expectedMs: nextDelay(chunk, wpmAtEmission)}` per `chunk` event and calls `activeMs` at session end; `elapsedMs = max(1, activeMs>0 ? round(activeMs) : wallMs)` unchanged. Equivalence: uninterrupted session ≡ sum of expected delays (± rounding); proven by unit test, not inspection.
+- Composition root `src/app.js` (396 ln): 4 views (`index.html` sections), `show(name)`, in-memory `currentText/currentChapter/currentPlayer/currentSession`; writes `sessions` at end, amends on quiz save; alerts for failures; export/import via store.
+- Pure libs: `text.js` (tokenize/chunk/splitSentences), `player.js` (deadline scheduler), `quiz.js` (seeded cloze), `metrics.js` (wpm/activeMs/summarize/sessionTicks/suggestNextWpm), `orp.js`, import pipeline (`pipeline/article/epub/docx/pdf/zip`), `store.js` (IDB v1, 4 stores, export v1).
+- Views: `h.js`, `library.js`, `player-view.js` (incl. span drill), `quiz-view.js` (answering + authoring), `dashboard.js` (lap table + suggestion), `a11y.js` (announce/focusMain/reduced-motion).
+- Tokens: 19 lines (folio/ink/marker/pencil/rule/oxblood + type + motion). `app.css` S1–S6 sections.
+- Tests: 12 `node --test` files; CDP harnesses `scripts/{a11y-checks,export-import,idb-failure,perf-large-book}.js`, `.autoforge/validation/e2e-walkthrough.mjs` (530 ln), `test/harness/*.html` (6).
+- Seams that already exist and are reused: `h()`, view `replaceChildren` roots, store wrapper, player engine events, metrics `sessionTicks`. Not built (do not pre-build): router, settings module, event bus, worker.
 
-## 4. Regression fixtures (F04)
-- Options: (a) excerpt in test file; (b) `assets/` sample + loader.
-- Recommend (a): ~150–250-word public-domain excerpt inline in `test/quiz-regression.test.js` (or `quiz.test.js`), fixed seed, exact-output assert + stopword/distractor/seed-sensitivity invariants. Test-only — never an app asset (ADR-10 posture, no new load path).
-- Blast-radius rule: any generator change that moves the fixture fails `node --test` until the fixture diff is deliberately updated AND reviewed as a quality judgment. Fixture churn is a signal, not noise.
+## 2. Target architecture
 
-## 5. Export/import E2E vs IDB hardening line (F05/F07 — overlap resolved)
-- F05 owns the UI round-trip in the browser harness: seed → export → wipe → import through the real UI with confirm-accept, confirm-dismiss (no import, no loss), wrong-schema file → readable error + data intact.
-- F07 owns simulated failure units against the store contract in a browser context: quota-exceeded write, aborted tx (rejects, never hangs, no partial writes), malformed payload; recovery copy reuses existing alert surfaces (no new dialogs).
-- Split line: quota/abort paths = F07 only; schema-mismatch path = F05 only; both assert "existing data intact". Neither changes the export schema.
+### 2.1 Layers and data flow (ADR-22)
 
-## 6. SR/keyboard split (F06)
-- Automatable slice (agent, in `test/harness/` + scripted walkthrough): key-event walk of the full loop, tab order / focus visibility, live-region text assertions at sentence boundaries, reduced-motion default + manual sentence mode state.
-- Human-only slice (stays `ready-for-human`): listening to real SR announcements (VoiceOver/NVDA), keyboard-only full loop noting traps/dead ends, announcement-quality judgment. Automation asserts attributes; only ears assert usability.
+```
+UI action (library / player / quiz / dashboard)
+  → app.js (composition root; ONLY writer of store + profile)
+      → store.put facts (sessions | quizzes | texts | settings)     [append-only history]
+      → profile.setActiveSession / markSeen / setUiPrefs            [profile seam, profileId='local']
+  → derive (pure, on render):
+      store.getAll → events.facts → engines (xp, streak, achievements, challenges, records)
+                   → events.rewardMoments / sessionMoments
+  → render contracts (dashboard.render({sessions, suggestion, gamify, summary}))
+  → a11y announcements (role=status / live region), motion (reduced-motion branch)
+```
 
-## 7. Perf harness (F08)
-- Placement: standalone node script (explicit run, NOT in the `node --test` gate — budgets must not slow the suite) + in-browser import timing via the walkthrough harness. Measures tokenize+chunk wall time and heap on the 130k-word novel.
-- Initial budgets (ticket records verdict): Node < 2s, browser import < 3s with responsive first paint, chunk-array heap < 100MB. Fix-only-on-miss: within budget → numbers recorded, zero code change; miss → fix (e.g. lazy per-chapter tokenization) lands with before/after numbers. No workers/virtualization without a measured miss.
+Purity rules: `src/lib/*` never imports `src/ui/*`, never touches DOM at import time, never `fetch` (ADR-1 unchanged); `store.js` only IDB user; `profile.js` only profile-store user, store injected. UI modules import pure libs only for formatting/derivation; no reward logic in views. `app.js` is the only store/profile writer.
 
-## 8. Span mode (F10 + gate-5 overclaim guard)
-- Options: (a) new view + lib drill module; (b) drill mode inside `player-view.js` reusing chunk/ORP/player engine.
-- Recommend (b): no new view file; drill varies preview width around the fixed ORP anchor, recognition checks reuse `scoreQuiz` semantics, drill sessions reuse the session record + optional `drill:'span'` flag (summarize/dashboard unchanged, same honesty rules).
-- Gate-5 guardrails (hard stop): no UI/doc/metric string may promise speed gains — grep-blocked words (`faster`, `boost`, `double`, `improve your speed`); copy frames calibration practice only; drill `comprehensionPct` labeled as recognition checks, never mixed into reading-comprehension trend without the `drill` flag visible.
+### 2.2 New modules
 
-## 9. Redesign build (RB1–RB3 + RS1–RS7)
-- Authority confirmed: frozen spec files above; code-impact analysis in `design/architecture.md` (already grilled 5/5, no ADR conflicts).
-- B-module interfaces (frozen): `h(tag, attrs, ...children)` in `src/ui/h.js` (`on:`/`class:` shorthand); `splitSentences(text)->string[]` in `src/lib/text.js` (abbreviation-aware); `sessionTicks(sessions)->{wpm,comprehensionPct,best}[]` in `src/lib/metrics.js`; `styles/tokens.css` (`:root` only) + `styles/app.css` (consumes only, two link tags, order matters).
-- S-chain ownership (single-`app.css` collision rule): strictly sequential per `blocked_by`; each ticket owns named sections — S1 header/nav, S2 library, S3 player+rail+setup, S4 quiz, S5 dashboard, S6 motion/responsive; append-only edits outside owned sections forbidden. B1–B3 parallel. No player-view split / settings / router modules (rejected hypothetical seams — upheld).
-- Depth note: `h()` earns its seam (4+ view adapters migrate in S2–S5); `splitSentences`/`sessionTicks` earn theirs (SR mode + rail/strip + tests share them).
+| Module | Responsibility | Notes |
+|---|---|---|
+| `src/lib/events.js` | projection: `facts()` + `rewardMoments()` + `sessionMoments()` | pure; imports xp/streak/achievements/challenges/records |
+| `src/lib/profile.js` | repository seam over one `profile` record | `profileId='local'`; never throws; corrupt → defaults |
+| `src/lib/xp.js` | session XP, daily caps, streak/challenge/record/achievement bonuses, level ladder | dependency-free |
+| `src/lib/streak.js` | dayKey/dayMap/streakStats | wave-1 signature kept |
+| `src/lib/achievements.js` | 26-item catalog + `evaluate()` | wave-1 signature kept |
+| `src/lib/challenges.js` | daily/weekly catalog + `challengeProgress()` | deterministic local-calendar rotation |
+| `src/lib/records.js` | `personalRecords()` + `recordImprovements()` | tie → earliest |
+| `src/ui/gamify-cards.js` | xpCard/streakCard/challengeCard/achievementGrid/unlockMoment | `h()` only |
+| `src/ui/gamify-viz.js` | wpmChart/bestPodium/recordsList (hand SVG) | no chart dep |
 
-## 10. Top risks
-1. Chapter attribution drift — quiz/session pointing at different chapters. Mitigate: single `currentChapter` source in `app.js`; quiz inherits session's `chapterIndex`; test chapter-jump → session+quiz attribution.
-2. Authoring leak — expected answers rendered while answering. Mitigate: answering-DOM exclusion test (§2); answering path code-review rule.
-3. WPM equivalence break — refactor shifts happy-path numbers. Mitigate: equivalence unit test (§3) + walkthrough WPM unchanged within rounding.
-4. Quiz fixture churn — generator tweaks held hostage by brittle exact-match. Mitigate: deliberate-update rule (§4); keep excerpt short so diffs stay reviewable.
-5. Pages deploy timing (RS7) — push-to-main auto-redeploys mid-verification. Mitigate: full suite + e2e + review APPROVED before push; live-URL check after; no feature work in S7.
+Store v2: `speedread` DB VERSION 2; additive `profile` store (ADR-23). Export `schemaVersion:2`; import accepts 1 and 2 (ADR-23 supersedes the ADR-2 `schemaVersion:1` freeze).
 
-## Ticket traceability
-F01→§1, F02→§2, F03→§3, F04→§4, F05→§5, F06→§6, F07→§5, F08→§7, F10→§8, RB1/RB2/RB3→§9, RS1–RS7→§9/§10.5. No ticket needs architecture beyond what its section states.
+### 2.3 Session lifecycle and resumability (ADR-21)
+
+`idle → ready → playing ⇄ paused → ending → quiz → summary → dashboard`. `sessionId` minted at player start (not at record time) so resume and idempotency share one key. `profile.activeSession` snapshot written on pause / tab hide / pagehide / exit-without-end; cleared on record and on quiz cancel. On boot: stale snapshot with a missing text is discarded silently; otherwise Library banner + Dashboard card offer Resume (paused, `seek(chunkIndex)`, accumulated `elapsedMs` seeded). Summary is a dashboard *state* (`render({summary})`), not a fifth view (binding 4). Player view hides shell nav + HUD while active (distraction-free; §7); Escape/Exit restores.
+
+### 2.4 Economy (ADR-24, exact numbers)
+
+Session XP = `floor(words/10)` (2nd+ same-text session same local day ×0.5) + comprehension bonus (+10 ≥60%, +20 ≥80%) + WPM-target +15 (requires comprehension ≥60%) ; session-source XP capped 500/local-day. Drill: `floor(words/20)`, no comprehension/WPM bonus, +1/correct recognition (max 20). Streak +10 per consecutive day beyond first, +50 per complete 7-day block. Challenge +50 daily / +150 weekly. Record improvement +30 (max 3/day). Achievement unlock +25. Level ladder 11 book-format tiers (0/100/300/700/1500/3000/6000/12000/24000/48000/96000 XP). All derived, monotonic in appended history (invariant I1).
+
+### 2.5 Design system structure (ADR-26)
+
+`tokens.css` gains role groups (`--color-*`, `--space-*`, `--radius-*`, `--elev-*`, `--control-h-*`, `--text-*`, rarity, motion) with the incumbent folio/ink/marker names preserved as aliases; `app.css` consumes only (ADR-19). Component inventory (mission §25 states) frozen as class contract. **Values PENDING product/01** — structure + slot-in points specified, no final colors/type.
+
+### 2.6 Verification architecture (ADR-27)
+
+`node --test` (unit + property invariants) + CDP harnesses (`e2e-walkthrough.mjs`, `scripts/*`) + new `scripts/{dashboard-perf,security-checks,screenshots}.mjs`. Chromium-only automation (binding 7) + `docs/browser-checklist.md` manual pass; screenshots reviewed by human, no pixel diff (binding 8); budgets: dashboard render <100ms @1000 sessions, chart ≤120 points, import <3s, Node tokenize/chunk <2s.
+
+## 3. Alternatives considered and rejected
+
+1. **Persisted XP ledger / event-sourcing with a durable event log** — rejected (binding 1): append-only session+quiz history already is the log; a second store doubles write paths and migration surface. Tombstones deferred until session deletion exists.
+2. **Separate summary view/route** — rejected (binding 4): nav stays 4 items; summary is dashboard state.
+3. **Persisted streak/achievement state** — rejected: derived; only `seenAchievements` (UI memory) persists in `profile`.
+4. **New settings keys for gamification** — rejected: `settings.seenAchievements` (gamify/06) is superseded by `profile.seenAchievements` (binding 5); settings record otherwise untouched.
+5. **Charting/utility dependency, workers, virtualization** — rejected (ADR-1 + no measured miss; ADR-17 posture).
+6. **Bottom-tab nav as new DOM shell** — rejected: keep existing 4 header buttons; mobile collapse is CSS-only (fixed tab bar <768px), so nav routing tests and keyboard order survive.
+7. **Per-question immediate quiz feedback** — rejected: changes the scoring loop and ADR-12 boundaries; deferred review state gives the same states (correct/incorrect/skipped) post-submit.
+
+## 4. Execution waves and collisions
+
+- W1 engines (after product/04): gamify 01/02/03 → `xp.js`/`streak.js`/`achievements.js` + tests. Product/04 also emits `challenges.js`/`records.js`.
+- W2 design system + shell (after product/01/02): tokens v2 + shell/nav + primitives; then gamify 04/05 against frozen tokens.
+- W3 domain + persistence (after product/03): `events.js`, `profile.js`, store v2, export/import v2; then gamify 06 integration.
+- W4 surfaces (after 02/05/06/07 + W2): library, player, quiz+summary+dashboard, each with verification (mission §27).
+- W5 animation/a11y/responsive/hardening/polish (after 07/08 + W4): gamify 07 gate, product 08, mission §28–31.
+
+Collisions (single-writer, sequential): `src/app.js` (W2 shell → W3 boot/import-export → W4 flows → gamify/06); `styles/app.css` (W2 rewrite of S1–S6 → gamify G1/G2 append → W4 per-surface sections); `index.html` (product/02 nav → gamify/06 header HUD); `src/ui/dashboard.js` (product/07 contract → gamify/06 consumes); `test/harness/*` + `scripts/*` (product/08 owns final). gamify/06 gains a dependency on product/07 (contract owner) — recorded in §15.
+
+## 5. Top risks
+
+1. **Resume correctness** — snapshot/restore can double-count elapsed time or lose chunk position. Mitigate: single writer (`app.js`), snapshot on pause/hide/pagehide only, resume test in walkthrough + `activeMs` accumulation test.
+2. **Economy monotonicity** — daily caps/repeat factors can silently break "XP never decreases". Mitigate: property test I1 over generated append sequences (invariants.test.js).
+3. **Migration/data integrity** — v1→v2 upgrade + import v1/v2 validation must never lose user data. Mitigate: additive `onupgradeneeded`, validate-before-clear preserved, v1-import E2E, corrupt-profile recovery test.
+4. **app.css/tokens collision** — W2 token restructure vs gamify G1/G2 appends. Mitigate: strict wave order + named section ownership (§15); tokens `:root`-only grep stays.
+5. **Summary/reward scope creep** — every engine firing at once recreates noise the mission bans. Mitigate: fixed priority order + max 1 hero + ≤3 compact (ADR-25), consolidated single announcement.
+
+## 6. PENDING (HITL)
+
+- **product/01 visual world**: final color/type/spacing/motion *values*; prototype reaction. Structure and slot-in points frozen in ADR-26; incumbent folio/ink/marker is the default posture.
+- **product/05 player UX / product/06 library UX**: prototype interaction specifics (control layout, density) beyond the frozen contracts in ADR-21/25/26.
+- Cross-browser manual checklist results (docs/browser-checklist.md) and screenshot review are human evidence, not automated.
+
+## 7. Traceability
+
+Mission §1–§32 → ADR/decision mapping and per-ticket mapping: decisions.md §16. No source edits in this stage; no ADR-1/2/6/7/8/10/12/18/19 conflict (ADR-23 supersedes only the `schemaVersion:1` export freeze; binding 5 supersedes gamify/06's `settings.seenAchievements`).

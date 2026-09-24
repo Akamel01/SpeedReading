@@ -22,7 +22,7 @@ function record(step, ok, detail = '') {
 }
 
 const CALIBRATION = Array.from({ length: 6 }, (_, i) =>
-  `Accessibility sentence number ${i + 1} exercises announcements honestly. It carries enough words for checking purposes!`).join(' ');
+  `Accessibility sentence number ${i + 1} exercises announcements honestly today. It carries enough words for checking purposes daily!`).join(' ');
 
 async function main() {
   const userDataDir = await mkdtemp(join(tmpdir(), 'e2e-a11y-'));
@@ -132,6 +132,41 @@ async function main() {
     record('announce: live region fires at sentence boundaries only', seen.length >= 1 && seen.length <= 5,
       `distinct announcements=${seen.length}`);
 
+    // M-G07 gate: gamification attributes on the real app (no mocks).
+    // Complete the calibration session at high speed, then quiz -> review -> Done.
+    for (let i = 0; i < 20; i++) {
+      await evaluate(`document.querySelector('.player-btn-faster').click()`);
+    }
+    await waitFor(`!document.querySelector('#view-quiz').hidden`, 45000);
+    await evaluate(`document.querySelectorAll('#view-quiz .quiz-answer').forEach(i => { i.value = 'zzz'; }); true`);
+    await evaluate(`document.querySelector('#view-quiz .quiz-actions button[type="submit"]').click()`);
+    await waitFor(`document.querySelector('#view-quiz .quiz-heading').textContent.startsWith('Review:')`);
+    const verdictClasses = await evaluate(`[...document.querySelectorAll('#view-quiz .quiz-verdict')].map(v => v.className).join(' ')`);
+    record('gamify: review verdicts carry correct/incorrect/skipped classes',
+      (verdictClasses.match(/quiz-verdict-incorrect/g) ?? []).length >= 1, verdictClasses.slice(0, 120));
+    await evaluate(`[...document.querySelectorAll('#view-quiz .quiz-actions button')].find(b => b.textContent.trim() === 'Done').click()`);
+    await waitFor(`document.querySelector('#view-dashboard .dashboard-summary-heading') !== null`);
+    const momentsOk = await evaluate(`[...document.querySelectorAll('#view-dashboard .reward-moment')].every(m => m.getAttribute('role') === 'status')`);
+    record('gamify: reward moments render role=status', momentsOk);
+    const barsOk = await evaluate(`[...document.querySelectorAll('#view-dashboard [role="progressbar"]')].every(p => p.getAttribute('aria-valuenow') !== null)`);
+    record('gamify: progressbars expose aria-valuenow', barsOk);
+    const hudOk = await evaluate(`document.querySelector('#hud')?.getAttribute('role') === 'status' && (document.querySelector('#hud').textContent ?? '').includes('XP')`);
+    record('gamify: HUD is a labelled status with XP totals', hudOk);
+    const hasDismiss = await evaluate(`document.querySelector('#view-dashboard .reward-moment button, #view-dashboard .gamify-unlock button') !== null`);
+    let theftFree = hasDismiss;
+    if (hasDismiss) {
+      await evaluate(`document.querySelector('#view-dashboard .reward-moment button, #view-dashboard .gamify-unlock button').click()`);
+      theftFree = await evaluate(`document.activeElement !== null && document.contains(document.activeElement)`);
+    }
+    record('gamify: reward dismiss works without focus theft', theftFree, hasDismiss ? 'dismissed, focus in document' : 'no dismissible moment this session');
+    await evaluate(`[...document.querySelectorAll('#view-dashboard .dashboard-summary-actions button')].find(b => b.textContent.trim() === 'Dashboard').click()`);
+    await waitFor(`document.querySelector('#view-dashboard .dashboard-table') !== null`);
+    const cardsOk = await evaluate(`document.querySelector('#view-dashboard .gamify-card.xp') !== null && document.querySelector('#view-dashboard .gamify-card.streak') !== null && document.querySelectorAll('#view-dashboard .gamify-card.challenge').length === 2`);
+    record('gamify: log cards (xp/streak/2 challenges) have accessible names',
+      cardsOk && await evaluate(`[...document.querySelectorAll('#view-dashboard .gamify-card')].every(c => (c.getAttribute('aria-label') ?? '').length > 0)`));
+    const gridOk = await evaluate(`document.querySelectorAll('#view-dashboard .dashboard-records .record-item').length === 10`);
+    record('gamify: records list carries all 10 ids', gridOk);
+
     // Trusted Tab walk: every stop is a labelled native control with a visible outline.
     await send('Page.reload', {}, sid);
     await waitFor(`document.querySelector('#view-library') && !document.querySelector('#view-library').hidden`);
@@ -153,6 +188,7 @@ async function main() {
       `${stops.length} stops checked${badStops.length ? ` bad=${JSON.stringify(badStops)}` : ''}`);
 
     // Esc exits the player back to the library.
+    await waitFor(`document.querySelector('#view-library .library-item button[data-action="open"]') !== null`);
     await evaluate(`[...document.querySelectorAll('#view-library .library-item')].find(li => /a11y/i.test(li.textContent)).querySelector('button[data-action="open"]').click()`);
     await waitFor(`!document.querySelector('#view-player').hidden`);
     await press('Escape');
@@ -163,6 +199,7 @@ async function main() {
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, sid);
     await send('Page.reload', {}, sid);
     await waitFor(`document.querySelector('#view-library') && !document.querySelector('#view-library').hidden`);
+    await waitFor(`document.querySelector('#view-library .library-item button[data-action="open"]') !== null`);
     await evaluate(`[...document.querySelectorAll('#view-library .library-item')].find(li => /a11y/i.test(li.textContent)).querySelector('button[data-action="open"]').click()`);
     await waitFor(`!document.querySelector('#view-player').hidden`);
     const srMode = await evaluate(`!document.querySelector('.player-sr').hidden && document.querySelector('.player-btn-play').textContent.trim() === 'Play'`);
@@ -179,6 +216,22 @@ async function main() {
       return Math.round(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)) * 100) / 100;
     })()`);
     record('contrast: body text >= 4.5:1', ratio >= 4.5, `ratio=${ratio}`);
+
+    // M-G07 static gate (node-side, documented as static): copy bans + reduced-motion branches.
+    const banRe = /guarantee|fluent in|10x|double your|triple your|speed reader in|streak lost|you broke|leaderboard|friends are|everyone else/i;
+    const copyHits = [];
+    for (const f of ['src/ui/gamify-cards.js', 'src/ui/gamify-viz.js', 'src/ui/dashboard.js', 'src/ui/quiz-view.js', 'src/ui/player-view.js', 'src/ui/library.js']) {
+      try {
+        const text = await readFile(join(REPO, f), 'utf8');
+        const bad = text.split('\n').filter((l) => banRe.test(l) && !l.trim().startsWith('//'));
+        if (bad.length > 0) copyHits.push(`${f}: ${bad.length}`);
+      } catch { copyHits.push(`${f}: unreadable`); }
+    }
+    record('copy: ADR-18/24 bans clean across UI surfaces', copyHits.length === 0, copyHits.join('; '));
+    const css = await readFile(join(REPO, 'styles', 'app.css'), 'utf8');
+    const reducedTail = css.split('@media (prefers-reduced-motion').slice(1).join('');
+    const motionBranches = ['.gamify-unlock', '.viz-chart', '.reward-moment'].every((sel) => reducedTail.includes(sel));
+    record('motion: reduced-motion branches present for gamify surfaces (static)', motionBranches);
 
     record('page: zero uncaught page exceptions', pageErrors.length === 0, pageErrors.slice(0, 2).join(' | '));
   } catch (error) {
