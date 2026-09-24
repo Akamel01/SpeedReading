@@ -27,6 +27,8 @@
   --pencil: #82858A;
   --rule: var(--color-border);
   --oxblood: var(--color-error);
+  --font-scale: 1;
+  --text-align: center;
 
   /* Typography */
   --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;

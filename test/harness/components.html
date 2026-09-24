@@ -41,7 +41,9 @@
   <div class="row">Row item</div>
   <span class="badge">Badge</span>
   <span class="stamp rarity-common">Stamp</span>
+  <span class="stamp rarity-uncommon">Stamp</span>
   <span class="stamp rarity-epic">Stamp</span>
+  <span class="stamp unlocked rarity-rare">Stamp</span>
   <span class="stamp locked rarity-rare">Stamp</span>
 
   <!-- Stat / Progress / Chart / Table -->
@@ -78,7 +80,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       const checks = [];
       const requiredSelectors = [
-        '.btn', '.field', '.check', '.switch', '.card', '.card-elevated', '.row', '.badge', '.stamp', '.stamp.rarity-common', '.stamp.rarity-epic', '.stat', '[role="progressbar"]', '.chart', '.table', '.empty', '.skeleton', '.banner.info', '.banner.success', '.banner.warning', '.banner.error', '.dialog', '.sheet', '.toast', '.status', '.tabs', '.nav-item', '.calendar'
+        '.btn', '.field', '.check', '.switch', '.card', '.card-elevated', '.row', '.badge', '.stamp', '.stamp.rarity-common', '.stamp.rarity-uncommon', '.stamp.rarity-epic', '.stamp.unlocked', '.stamp.locked', '.stat', '[role="progressbar"]', '.chart', '.table', '.empty', '.skeleton', '.banner.info', '.banner.success', '.banner.warning', '.banner.error', '.dialog', '.sheet', '.toast', '.status', '.tabs', '.nav-item', '.calendar'
       ];
       let allPresent = true;
       requiredSelectors.forEach(sel => {

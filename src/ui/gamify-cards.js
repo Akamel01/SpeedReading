@@ -16,6 +16,8 @@ export function xpCard(state) {
   const xp = typeof state?.xp === 'number' ? state.xp : 0;
   const lvl = levelFor(xp);
   const pct = Math.round((lvl.progress) * 100);
+  const atMax = lvl.progress >= 1;
+  const progressText = atMax ? `${pct}% — ${lvl.name} (highest honour)` : `${pct}% to next level`;
   const el = h('section', { class: 'gamify-card xp', 'aria-label': `XP ${xp} at level ${lvl.name}` },
     h('div', { class: 'xp-title' }, `XP: ${xp}`),
     h('div', {
@@ -23,9 +25,9 @@ export function xpCard(state) {
       'aria-valuenow': String(pct),
       'aria-valuemin': '0',
       'aria-valuemax': '100',
-      'aria-label': `Progress to next level: ${lvl.nextThreshold}`
+      'aria-label': atMax ? `Level ${lvl.name}, highest honour` : `Progress to next level: ${lvl.nextThreshold}`
     },
-      `${pct}% to ${lvl.nextThreshold ? lvl.name : ''}`
+      progressText
     )
   );
   return el;
@@ -36,7 +38,6 @@ export function streakCard(stats) {
   // Flexible input: optional stats.dayMap or stats.todayKey; render 7 days with labels
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const days = [0, 1, 2, 3, 4, 5, 6];
-  const today = typeof stats?.todayKey === 'string' ? stats.todayKey : new Date().toISOString().slice(0, 10);
   // Optional readable indicator for activity; if dayMap is provided as a Map with day keys
   let activity = new Set();
   if (stats?.dayMap instanceof Map) {

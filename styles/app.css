@@ -343,6 +343,8 @@ main > section:not([hidden]) { animation: view-rise var(--dur-view) var(--ease-c
 .btn.quiet { background: transparent; border-color: transparent; }
 .btn.danger { background: var(--color-error); color: #fff; }
 .btn:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; }
+.btn:hover { filter: brightness(0.97); }
+.btn:active { filter: brightness(0.94); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn.is-loading { position: relative; cursor: progress; }
 

@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-24T03:46:02.139Z",
+  "ranAt": "2026-09-24T07:04:10.129Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -73,9 +73,9 @@
       "detail": "405 words"
     },
     {
-      "step": "ADR-3 gate: real Gutenberg EPUB",
-      "ok": false,
-      "detail": "fixture not found at /tmp/pg1342.epub (download pg1342.epub or set EPUB_PATH)"
+      "step": "ADR-3 gate: real Gutenberg EPUB imports with title + word count",
+      "ok": true,
+      "detail": "Pride and Prejudice (epub, 130614 words · ~435 min · not started)Chapter 1The Project Gutenberg eBoo"
     },
     {
       "step": "import: paste box creates a first-class text",
@@ -97,7 +97,7 @@
     {
       "step": "resume: pagehide writes profile.activeSession",
       "ok": true,
-      "detail": "{\"sessionId\":\"f562cc2c-63aa-47f0-b023-0438aa184b06\",\"textId\":\"e4447bc1-af8f-490c-bf2f-8a36b30c3382\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":158,\"startedAt\":1790221509112,\"savedAt\":1790221509270}"
+      "detail": "{\"sessionId\":\"bc99396b-3459-40ba-aa7b-3f226b2fa5cd\",\"textId\":\"44db261e-1a41-498a-b070-7b5bc5ec15bf\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":146,\"startedAt\":1790233395187,\"savedAt\":1790233395333}"
     },
     {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
@@ -147,7 +147,7 @@
     {
       "step": "rsvp: ORP character rendered at anchor",
       "ok": true,
-      "detail": "orp=\"a\""
+      "detail": "orp=\"n\""
     },
     {
       "step": "a11y: live region announced a sentence boundary",
@@ -157,7 +157,7 @@
     {
       "step": "span-drill: preview zone renders upcoming words beside the anchor",
       "ok": true,
-      "detail": "preview=\"verifies the\""
+      "detail": "preview=\"1 carefully\""
     },
     {
       "step": "span-drill: recognition check scores the answer",
@@ -204,7 +204,7 @@
     {
       "step": "summary: exactly one completion announcement",
       "ok": true,
-      "detail": "Session complete. 2119 wpm, — comprehension."
+      "detail": "Session complete. 1842 wpm, — comprehension."
     },
     {
       "step": "summary: unlock moment renders for fresh unlocks",
@@ -218,7 +218,7 @@
     {
       "step": "dashboard: summary shows wpm + comprehension trend",
       "ok": true,
-      "detail": "3 sessions · best 2119 wpm · avg 986 wpm · avg comprehension 0% · trend flat"
+      "detail": "3 sessions · best 1842 wpm · avg 894 wpm · avg comprehension 0% · trend flat"
     },
     {
       "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
@@ -299,7 +299,7 @@
     {
       "step": "player: goal persists in settings per text",
       "ok": true,
-      "detail": "{\"fdf771be-7a75-4459-921b-15bdb0e6cafc\":{\"type\":\"wpm\",\"target\":400}}"
+      "detail": "{\"8a29245d-a25f-435b-b74c-340ad892cb55\":{\"type\":\"wpm\",\"target\":400}}"
     },
     {
       "step": "player: R restarts at first chunk",
@@ -313,22 +313,22 @@
     {
       "step": "player: pause-excluded elapsed (pauses not double-counted)",
       "ok": true,
-      "detail": "{\"elapsedMs\":19298,\"wall\":20350,\"wpm\":1368,\"words\":440}"
+      "detail": "{\"elapsedMs\":19349,\"wall\":20548,\"wpm\":1364,\"words\":440}"
     },
     {
       "step": "player: WPM uses total elapsed",
       "ok": true,
-      "detail": "wpm=1368 recomputed=1368"
+      "detail": "wpm=1364 recomputed=1364"
     },
     {
       "step": "player: reload with snapshot shows Resume banner",
       "ok": true,
-      "detail": "Resume — sample, Full text at chunk 33"
+      "detail": "Resume — sample, Full text at chunk 35"
     },
     {
       "step": "player: resume lands paused at the saved chunk",
       "ok": true,
-      "detail": "banner chunk=33 after=\"Chunk 33 / 33\" paused=true"
+      "detail": "banner chunk=35 after=\"Chunk 35 / 35\" paused=true"
     },
     {
       "step": "player: quiz-cancel clears the resume snapshot",
@@ -394,7 +394,7 @@
     {
       "step": "quiz: Q1 key differs from the submitted wrong answer (miss is genuine)",
       "ok": true,
-      "detail": "key=\"words\""
+      "detail": "key=\"flow\""
     },
     {
       "step": "quiz: authoring re-scores display against edited keys (Q1 now Correct)",
@@ -473,8 +473,8 @@
       "detail": "1 total console events, none critical"
     }
   ],
-  "passed": 99,
-  "failed": 1,
+  "passed": 100,
+  "failed": 0,
   "networkRequests": [
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/tokens.css",
@@ -557,9 +557,9 @@
     "http://127.0.0.1:8177/src/ui/h.js",
     "http://127.0.0.1:8177/src/ui/gamify-cards.js",
     "http://127.0.0.1:8177/src/ui/gamify-viz.js",
-    "http://127.0.0.1:8177/src/lib/docx.js",
-    "http://127.0.0.1:8177/src/lib/zip.js",
     "http://127.0.0.1:8177/src/lib/epub.js",
+    "http://127.0.0.1:8177/src/lib/zip.js",
+    "http://127.0.0.1:8177/src/lib/docx.js",
     "http://127.0.0.1:8177/src/lib/pdf.js",
     "https://example.com/",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
@@ -720,12 +720,12 @@
     "http://127.0.0.1:8177/src/ui/dashboard.js",
     "http://127.0.0.1:8177/src/ui/a11y.js",
     "http://127.0.0.1:8177/src/lib/orp.js",
-    "http://127.0.0.1:8177/src/ui/h.js",
     "http://127.0.0.1:8177/src/lib/achievements.js",
     "http://127.0.0.1:8177/src/lib/challenges.js",
     "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/ui/h.js",
     "http://127.0.0.1:8177/src/ui/gamify-cards.js",
     "http://127.0.0.1:8177/src/ui/gamify-viz.js"
   ],
-  "verdict": "FAIL"
+  "verdict": "GO"
 }

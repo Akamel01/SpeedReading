@@ -3,12 +3,12 @@
 Zero feature work. Full evidence set for the 15-ticket frontier (21 modules).
 Run ends here; no push/deploy (HC-C records the human review below).
 
-## Verdict: GO (with one environmental exception)
+## Verdict: GO
 
 | Suite | Command | Result |
 |---|---|---|
 | unit | `node --test` | 177/177 |
-| e2e walkthrough | `CHROME_PATH=... node .autoforge/validation/e2e-walkthrough.mjs` | 99 passed, 1 failed — only `ADR-3 gate: real Gutenberg EPUB` (fixture absent at `/tmp/pg1342.epub`; set EPUB_PATH or download pg1342.epub) |
+| e2e walkthrough | `CHROME_PATH=... node .autoforge/validation/e2e-walkthrough.mjs` | 100 passed, 0 failed — GO (fixture: /tmp/pg1342.epub noimages variant; the 24MB images variant times out) |
 | components harness | `node scripts/harness-run.mjs test/harness/components.html --assert` | 28/28 |
 | gamify harness | `node scripts/harness-run.mjs test/harness/gamify.html --assert` | 25/25 |
 | store-v2 harness | `node scripts/harness-run.mjs test/harness/store-v2.html --assert` | 11/11 |
@@ -57,9 +57,9 @@ app.css declares 0 custom properties · innerHTML/outerHTML/insertAdjacentHTML 0
 
 ## Honest limits
 
-1. The single failing step needs a Gutenberg fixture the sandbox lacks
-   (`/tmp/pg1342.epub`); the EPUB path is instead proven by the fixture-based
-   chapter-picker steps and unit zip/epub suites.
+1. The ADR-3 step needs a Gutenberg fixture outside the repo (`/tmp/pg1342.epub`,
+   noimages variant — the 24MB images variant times out the import); set EPUB_PATH
+   otherwise. Resolved 2026-09-24: 100/100 GO.
 2. Pixel-diff visual regression is out of scope (binding 8): 12 screenshots +
    human review substitute.
 3. Cross-browser is manual (binding 7): docs/browser-checklist.md.

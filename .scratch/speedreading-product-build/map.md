@@ -65,3 +65,7 @@ Evidence: components harness 28/28 · gamify harness 25/25 · `node --test` 176/
 
 
 **All tickets closed:** 01–21. W5 done (18 integration, 19 gate, 20 harness). M-P08B evidence complete; HC-C pending.
+
+**Post-run tickets (2026-09-24):** 22 HC-C human review (ready-for-human), 23 EPUB fixture (ready-for-agent), 24 review-notes cleanup (ready-for-agent).
+
+**Post-run closed:** 23 EPUB fixture (100/100 GO), 24 review-notes cleanup. Open: 22 HC-C human review (ready-for-human).
