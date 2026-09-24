@@ -439,27 +439,47 @@ async function main() {
       (await evaluate(`document.querySelector('#live-region').textContent.trim()`)).slice(0, 60));
 
     // 4a. Guided-highlight page mode (ticket 29): page visible, focus highlighted, rest dimmed.
-    await waitFor(`document.querySelectorAll('#view-player .reader-chunk.is-read').length >= 1`, 8000, 'a chunk becomes read').catch(() => {});
+    await waitFor(`document.querySelectorAll('#view-player .reader-word.is-read').length >= 1`, 8000, 'a word becomes read').catch(() => {});
     const pageVisible = await evaluate(`!document.querySelector('#view-player .reader-page').hidden`);
     const stageHidden = await evaluate(`document.querySelector('#view-player .rsvp-stage').hidden`);
-    const currentCount = await evaluate(`document.querySelectorAll('#view-player .reader-chunk.is-current').length`);
-    const readCount = await evaluate(`document.querySelectorAll('#view-player .reader-chunk.is-read').length`);
-    const dimmed = await evaluate(`(() => { const el = document.querySelector('#view-player .reader-chunk:not(.is-current)'); return el ? getComputedStyle(el).opacity : null; })()`);
-    record('page mode: page shown, stage hidden, one current chunk, read dimmed, rest dimmed',
-      pageVisible && stageHidden && currentCount === 1 && readCount >= 1 && Number(dimmed) < 1,
+    const currentCount = await evaluate(`document.querySelectorAll('#view-player .reader-word.is-current').length`);
+    const readCount = await evaluate(`document.querySelectorAll('#view-player .reader-word.is-read').length`);
+    const dimmed = await evaluate(`(() => { const el = document.querySelector('#view-player .reader-word:not(.is-current)'); return el ? getComputedStyle(el).opacity : null; })()`);
+    record('page mode: page shown, stage hidden, focus words highlighted, rest dimmed',
+      pageVisible && stageHidden && currentCount >= 1 && readCount >= 1 && Number(dimmed) < 1,
       `current=${currentCount} read=${readCount} otherOpacity=${dimmed}`);
     const beforeSeek = await evaluate(`document.querySelector('#view-player .player-progress').textContent`);
     await evaluate(`(() => { const els = [...document.querySelectorAll('#view-player .reader-chunk')]; const t = els[Math.min(els.length - 1, 10)]; t.click(); return true; })()`);
     await new Promise((r) => setTimeout(r, 700));
     const afterSeek = await evaluate(`document.querySelector('#view-player .player-progress').textContent`);
     record('page mode: click-to-seek jumps the stream', beforeSeek !== afterSeek, `${beforeSeek} -> ${afterSeek}`);
+    // 4a-2. Width dial (ticket 30): the fixation group is exactly N words.
+    await evaluate(`(() => { const s = document.querySelector('.player-setting-highlight-width'); s.value = '4'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await new Promise((r) => setTimeout(r, 700));
+    const width4Words = await evaluate(`document.querySelectorAll('#view-player .reader-word.is-current').length`);
+    record('page mode: highlight width 4 groups exactly 4 words', width4Words === 4, `words=${width4Words}`);
+    // 4a-3. Centred-line mode: one fixation group on a ruled line, neighbours faint.
+    await evaluate(`(() => { const s = document.querySelector('.player-setting-reading-mode'); s.value = 'line'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await new Promise((r) => setTimeout(r, 700));
+    const lineState = await evaluate(`({
+      lineVisible: !document.querySelector('#view-player .reader-line').hidden,
+      pageHidden: document.querySelector('#view-player .reader-page').hidden,
+      current: document.querySelector('#view-player .reader-line-current').textContent.trim(),
+      prev: document.querySelector('#view-player .reader-line-prev').textContent.trim(),
+      next: document.querySelector('#view-player .reader-line-next').textContent.trim(),
+    })`);
+    record('line mode: centred group with faint neighbours', lineState.lineVisible && lineState.pageHidden
+      && lineState.current.split(/\s+/).length === 4 && lineState.prev.length > 0 && lineState.next.length > 0,
+      JSON.stringify(lineState));
+    await evaluate(`(() => { const s = document.querySelector('.player-setting-highlight-width'); s.value = '2'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await new Promise((r) => setTimeout(r, 500));
     await evaluate(`(() => { const s = document.querySelector('.player-setting-reading-mode'); s.value = 'rsvp'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await new Promise((r) => setTimeout(r, 500));
-    const rsvpOn = await evaluate(`!document.querySelector('#view-player .rsvp-stage').hidden && document.querySelector('#view-player .reader-page').hidden`);
+    const rsvpOn = await evaluate(`!document.querySelector('#view-player .rsvp-stage').hidden && document.querySelector('#view-player .reader-page').hidden && document.querySelector('#view-player .reader-line').hidden`);
     await evaluate(`(() => { const s = document.querySelector('.player-setting-reading-mode'); s.value = 'page'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await new Promise((r) => setTimeout(r, 500));
     const backToPage = await evaluate(`document.querySelector('#view-player .rsvp-stage').hidden && !document.querySelector('#view-player .reader-page').hidden`);
-    record('page mode: RSVP toggle swaps the surface and back', rsvpOn && backToPage, `rsvp=${rsvpOn} back=${backToPage}`);
+    record('reading modes: RSVP toggle swaps the surface and back', rsvpOn && backToPage, `rsvp=${rsvpOn} back=${backToPage}`);
 
     // 4b. Span drill: preview zone + recognition check (ADR-18; framing only, no speed claims).
     const previewSeen = await waitFor(`document.querySelector('.rsvp-preview') !== null`, 6000, 'preview zone renders');

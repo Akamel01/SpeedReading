@@ -13,7 +13,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   let player = null;
   let chunkCount = 0;
   let currentWpm = 300;
-  let settings = { fontScale: 1, textAlign: 'center', orpEnabled: true, chunkSize: 2, reducedMotion: 'auto', drill: false, previewWords: 2, readingMode: 'page' };
+  let settings = { fontScale: 1, textAlign: 'center', orpEnabled: true, chunkSize: 2, reducedMotion: 'auto', drill: false, previewWords: 2, readingMode: 'page', highlightWidth: 2 };
   let recognitionCorrect = 0;
   let recognitionTotal = 0;
   let srMode = false;
@@ -133,8 +133,18 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   // Preview drill (ADR-18): practice reading ahead beside the fixed anchor; no speed promises.
   const drillSel = makeSelect('Preview drill', 'drill', [['off', 'Off'], ['on', 'On']]);
   const previewSel = makeSelect('Preview words', 'preview', [['0', '0'], ['1', '1'], ['2', '2']]);
-  // Reading mode (ticket 29): page = guided highlight (default), rsvp = word stream.
-  const readingModeSel = makeSelect('Reading mode', 'reading-mode', [['page', 'Page (guided highlight)'], ['rsvp', 'RSVP (word stream)']]);
+  // Reading modes: page = guided highlight over the real page (default),
+  // line = one fixation group centred at a time, rsvp = word stream.
+  const readingModeSel = makeSelect('Reading mode', 'reading-mode', [
+    ['page', 'Page (guided highlight)'],
+    ['line', 'Line (centred focus)'],
+    ['rsvp', 'RSVP (word stream)'],
+  ]);
+  // Highlight width = the fixation group size (2-3 words matches the
+  // perceptual span; wider is phrase pacing, not one-fixation training).
+  const highlightWidthSel = makeSelect('Highlight width', 'highlight-width', [
+    ['1', '1 word'], ['2', '2 words'], ['3', '3 words'], ['4', '4 words'], ['5', '5 words'], ['6', '6 words'],
+  ]);
 
   // Session goal controls live inside the Session disclosure; app.js persists via onGoalChange.
   const goalTypeSel = makeSelect('Goal', 'goal-type', [['none', 'No goal'], ['wpm', 'Reach WPM'], ['words', 'Read words'], ['time', 'Read time']]);
@@ -232,9 +242,22 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   readerPage.setAttribute('aria-label', 'Reading page');
   readerPage.tabIndex = 0;
 
+  // Centred-line view (ticket 30): one fixation group on a ruled line, the
+  // neighbouring groups faint above/below for context.
+  const readerLine = document.createElement('div');
+  readerLine.className = 'reader-line';
+  readerLine.hidden = true;
+  const linePrev = document.createElement('p');
+  linePrev.className = 'reader-line-adj reader-line-prev';
+  const lineCurrent = document.createElement('p');
+  lineCurrent.className = 'reader-line-current';
+  const lineNext = document.createElement('p');
+  lineNext.className = 'reader-line-adj reader-line-next';
+  readerLine.append(linePrev, lineCurrent, lineNext);
+
   // Views own their subtree: replace any shell placeholder content.
   root.replaceChildren(rail, pageCol, srPanel, recognition);
-  pageCol.append(header, stage, readerPage, progressBar, progress, controls, sessionDetails, helpDetails);
+  pageCol.append(header, stage, readerPage, readerLine, progressBar, progress, controls, sessionDetails, helpDetails);
 
   // ---- live goal tracking ----
   let goal = null; // { type: 'wpm'|'words'|'time', target: number } | null
@@ -248,6 +271,42 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   const chunkEls = new Map();
   let pageWindow = { start: -1, end: -1 };
   let pageIndex = 0;
+  let chunkStartWord = []; // prefix sums: first word index of each chunk
+  let flatWords = [];      // every rendered word (with trailing punctuation/space)
+  let totalWords = 0;
+
+  function buildWordIndex() {
+    chunkStartWord = new Array(chapterChunks.length);
+    flatWords = [];
+    let acc = 0;
+    for (let i = 0; i < chapterChunks.length; i++) {
+      chunkStartWord[i] = acc;
+      for (const token of chapterChunks[i]?.words ?? []) {
+        if (!token || token.word === '') continue;
+        flatWords.push(`${token.word}${token.trail ?? ''}`);
+        acc += 1;
+      }
+    }
+    totalWords = acc;
+  }
+
+  // Fixation group (ticket 30): `highlightWidth` consecutive words aligned to
+  // stable group boundaries; a group may span several engine chunks.
+  function currentGroup(chunkIndex) {
+    const width = Math.max(1, Math.min(6, Number(settings.highlightWidth) || 2));
+    if (totalWords === 0) return { startWord: 0, endWord: 0, firstChunk: chunkIndex, chunkList: [chunkIndex] };
+    const word = chunkStartWord[Math.max(0, Math.min(chunkIndex, chunkStartWord.length - 1))] ?? 0;
+    const startWord = Math.floor(word / width) * width;
+    const endWord = Math.min(totalWords, startWord + width);
+    const chunkList = [];
+    for (let i = 0; i < chapterChunks.length; i++) {
+      const w = chunkStartWord[i];
+      const nextW = i + 1 < chapterChunks.length ? chunkStartWord[i + 1] : totalWords;
+      if (nextW <= startWord || w >= endWord) continue;
+      chunkList.push(i);
+    }
+    return { startWord, endWord, firstChunk: chunkList[0] ?? chunkIndex, chunkList };
+  }
 
   function renderPageWindow(centerChunk) {
     const start = Math.max(0, centerChunk - PAGE_WINDOW);
@@ -269,6 +328,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
       chunkEl.className = 'reader-chunk';
       chunkEl.dataset.chunk = String(i);
       chunkEls.set(i, chunkEl);
+      let wIndex = chunkStartWord[i] ?? 0;
       for (const token of chunkDef.words ?? []) {
         if (!token || token.word === '') {
           flushPara(); // paragraph-boundary token
@@ -276,8 +336,10 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
         }
         const w = document.createElement('span');
         w.className = 'reader-word';
+        w.dataset.word = String(wIndex);
         w.textContent = `${token.word}${token.trail ?? ''}`;
         chunkEl.appendChild(w);
+        wIndex += 1;
       }
       para.appendChild(chunkEl);
     }
@@ -287,17 +349,56 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
 
   function paintPage(index) {
     if (chapterChunks.length === 0) return;
-    if (index < pageWindow.start + PAGE_WINDOW / 3 || index > pageWindow.end - PAGE_WINDOW / 3) {
-      renderPageWindow(index);
+    const group = currentGroup(index);
+    if (group.firstChunk < pageWindow.start + PAGE_WINDOW / 3 || group.firstChunk > pageWindow.end - PAGE_WINDOW / 3) {
+      renderPageWindow(group.firstChunk);
     }
-    const current = chunkEls.get(index);
-    for (const [i, el] of chunkEls) {
-      el.classList.toggle('is-current', i === index);
-      el.classList.toggle('is-read', i < index);
+    // Word-precise highlight: the group is `highlightWidth` words, which may
+    // straddle chunk boundaries.
+    let anchor = null;
+    for (const el of readerPage.querySelectorAll('.reader-word')) {
+      const w = Number(el.dataset.word);
+      const inGroup = w >= group.startWord && w < group.endWord;
+      el.classList.toggle('is-current', inGroup);
+      el.classList.toggle('is-read', w < group.startWord);
+      if (inGroup && !anchor) anchor = el.closest('.reader-chunk');
     }
-    if (current) current.scrollIntoView({ block: 'center', behavior: 'auto' });
+    if (anchor) anchor.scrollIntoView({ block: 'center', behavior: 'auto' });
     pageIndex = index;
   }
+
+  function paintLine(index) {
+    if (chapterChunks.length === 0) return;
+    const width = Math.max(1, Math.min(6, Number(settings.highlightWidth) || 2));
+    const group = currentGroup(index);
+    lineCurrent.textContent = '';
+    linePrev.textContent = '';
+    lineNext.textContent = '';
+    // Highlighted fixation group (no ORP anchor here; the group is the target).
+    for (const text of flatWords.slice(group.startWord, group.endWord)) lineCurrent.append(text);
+    const prevStart = Math.max(0, group.startWord - width);
+    linePrev.textContent = flatWords.slice(prevStart, group.startWord).join('').trim();
+    const nextEnd = Math.min(totalWords, group.endWord + width);
+    lineNext.textContent = flatWords.slice(group.endWord, nextEnd).join('').trim();
+    readerLine.dataset.groupStart = String(group.startWord);
+    readerLine.dataset.groupEnd = String(group.endWord);
+    readerLine.dataset.firstChunk = String(group.firstChunk);
+  }
+
+  function chunkForWord(wordIndex) {
+    for (let i = 0; i < chapterChunks.length; i++) {
+      const nextW = i + 1 < chapterChunks.length ? chunkStartWord[i + 1] : totalWords;
+      if (wordIndex < nextW) return i;
+    }
+    return Math.max(0, chapterChunks.length - 1);
+  }
+
+  readerLine.addEventListener('click', (event) => {
+    if (!player || !event.target.closest('.reader-line-next')) return;
+    const group = currentGroup(Number(readerLine.dataset.firstChunk) || 0);
+    const nextChunk = chunkForWord(group.endWord);
+    player.seek(Math.min(chapterChunks.length - 1, nextChunk));
+  });
 
   readerPage.addEventListener('click', (event) => {
     const el = event.target.closest?.('.reader-chunk');
@@ -345,9 +446,10 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   let recognitionPending = null;
 
   function applyReadingMode() {
-    const pageMode = settings.readingMode !== 'rsvp';
-    readerPage.hidden = !pageMode;
-    stage.hidden = pageMode;
+    const mode = settings.readingMode ?? 'page';
+    readerPage.hidden = mode !== 'page';
+    readerLine.hidden = mode !== 'line';
+    stage.hidden = mode !== 'rsvp';
   }
 
   function renderChunk({ chunk, orpParts, lookahead }) {
@@ -409,6 +511,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   function renderProgress(index) {
     progress.textContent = chunkCount > 0 ? `Chunk ${index + 1} / ${chunkCount}` : '';
     paintPage(index);
+    paintLine(index);
     const pct = chunkCount > 0 ? Math.min(100, Math.round(((index + 1) / chunkCount) * 100)) : 0;
     progressBar.setAttribute('aria-valuenow', String(pct));
     progressFill.style.width = `${pct}%`;
@@ -448,6 +551,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   chunkSel.addEventListener('change', () => onSettingsChange?.({ chunkSize: Number(chunkSel.value) }));
   drillSel.addEventListener('change', () => onSettingsChange?.({ drill: drillSel.value === 'on' }));
   readingModeSel.addEventListener('change', () => onSettingsChange?.({ readingMode: readingModeSel.value }));
+  highlightWidthSel.addEventListener('change', () => onSettingsChange?.({ highlightWidth: Number(highlightWidthSel.value) }));
   previewSel.addEventListener('change', () => onSettingsChange?.({ previewWords: Number(previewSel.value) }));
   motionSel.addEventListener('change', () => {
     onSettingsChange?.({ reducedMotion: motionSel.value });
@@ -556,10 +660,12 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     setGoal(startGoal ?? goal);
     // Guided-highlight page: the chapter's chunk list is the render source.
     chapterChunks = Array.isArray(startChunks) ? startChunks : [];
+    buildWordIndex();
     applyReadingMode();
     if (chapterChunks.length > 0) {
       renderPageWindow(0);
       paintPage(0);
+      paintLine(0);
     } else {
       readerPage.replaceChildren();
       pageWindow = { start: -1, end: -1 };
@@ -649,6 +755,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     drillSel.value = settings.drill ? 'on' : 'off';
     previewSel.value = String(settings.previewWords ?? 2);
     readingModeSel.value = settings.readingMode ?? 'page';
+    highlightWidthSel.value = String(settings.highlightWidth ?? 2);
     applyReadingMode();
     if (typeof settings.wpm === 'number') currentWpm = settings.wpm;
     speedValue.textContent = `${Math.round(currentWpm)} wpm`;

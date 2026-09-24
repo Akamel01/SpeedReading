@@ -235,24 +235,63 @@ label { margin-right: 10px; }
   scroll-behavior: auto;
 }
 .reader-para { margin: 0 0 1.1em; }
-.reader-chunk {
+.reader-chunk { border-radius: var(--radius-sm); padding: 1px 0; cursor: pointer; }
+/* The rest is dimmed; the current fixation group is highlighted at word level. */
+.reader-word {
   border-radius: var(--radius-sm);
-  padding: 1px 0;
-  opacity: 0.55; /* the rest is dimmed */
-  cursor: pointer;
+  opacity: 0.55;
   transition: opacity var(--dur-status) var(--ease-calm);
 }
-.reader-chunk.is-read { opacity: 0.32; }
-.reader-chunk.is-current {
+.reader-word.is-read { opacity: 0.32; }
+.reader-word.is-current {
   opacity: 1;
   background: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent);
   font-weight: 600;
 }
 .reader-chunk:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .reader-chunk { transition: none; }
+  .reader-word { transition: none; }
   .reader-page { scroll-behavior: auto; }
+}
+
+/* S3: centred-line fixation view (ticket 30) */
+.reader-line {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 220px;
+  padding: var(--space-4);
+  background: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule) 27px 28px), var(--color-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-display);
+  text-align: center;
+  cursor: default;
+}
+.reader-line-current {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.4;
+  min-height: 2.8rem;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 6px var(--color-accent);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  align-self: center;
+  padding: 0 var(--space-1);
+}
+.reader-line-adj {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  min-height: 1.4rem;
+  letter-spacing: 0.01em;
+}
+.reader-line-next { cursor: pointer; }
+.reader-line-next:hover { color: var(--color-text); }
+@media (max-width: 900px) {
+  .reader-line-current { font-size: 1.5rem; }
 }
 .player-settings { display: grid; gap: var(--space-2); margin-top: var(--space-3); font-size: 0.875rem; }
 .player-settings label { display: grid; gap: var(--space-1); white-space: nowrap; color: var(--color-text-muted); font-size: var(--text-xs); }

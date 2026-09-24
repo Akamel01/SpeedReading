@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS = {
   adaptiveSuggestions: true,
   goals: {},
   readingMode: 'page',
+  highlightWidth: 2,
 };
 
 const sections = {
