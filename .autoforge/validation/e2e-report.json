@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-24T08:06:25.708Z",
+  "ranAt": "2026-09-24T08:17:36.969Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -97,7 +97,7 @@
     {
       "step": "resume: pagehide writes profile.activeSession",
       "ok": true,
-      "detail": "{\"sessionId\":\"c77b8711-1b49-49aa-9628-b553b5d43644\",\"textId\":\"1be1d75b-9a66-448b-92c1-53fe47ff86a4\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":148,\"startedAt\":1790237130628,\"savedAt\":1790237130776}"
+      "detail": "{\"sessionId\":\"d64a1003-70c6-43c9-81d8-50c6de51c30d\",\"textId\":\"0f561d5a-5f8f-43c7-bdb9-1d336567a7dc\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":4,\"startedAt\":1790237802189,\"savedAt\":1790237802193}"
     },
     {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
@@ -204,7 +204,7 @@
     {
       "step": "summary: exactly one completion announcement",
       "ok": true,
-      "detail": "Session complete. 1842 wpm, — comprehension."
+      "detail": "Session complete. 1848 wpm, — comprehension."
     },
     {
       "step": "summary: unlock moment renders for fresh unlocks",
@@ -218,7 +218,7 @@
     {
       "step": "dashboard: summary shows wpm + comprehension trend",
       "ok": true,
-      "detail": "3 sessions · best 1842 wpm · avg 894 wpm · avg comprehension 0% · trend flat"
+      "detail": "3 sessions · best 1848 wpm · avg 896 wpm · avg comprehension 0% · trend flat"
     },
     {
       "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
@@ -299,7 +299,7 @@
     {
       "step": "player: goal persists in settings per text",
       "ok": true,
-      "detail": "{\"ab2eebb1-8587-4dad-9d78-6477d0c77748\":{\"type\":\"wpm\",\"target\":400}}"
+      "detail": "{\"92b28118-f334-411a-be93-48707c8ceb52\":{\"type\":\"wpm\",\"target\":400}}"
     },
     {
       "step": "player: R restarts at first chunk",
@@ -313,7 +313,7 @@
     {
       "step": "player: pause-excluded elapsed (pauses not double-counted)",
       "ok": true,
-      "detail": "{\"elapsedMs\":19332,\"wall\":20529,\"wpm\":1366,\"words\":440}"
+      "detail": "{\"elapsedMs\":19332,\"wall\":20531,\"wpm\":1366,\"words\":440}"
     },
     {
       "step": "player: WPM uses total elapsed",
@@ -394,7 +394,7 @@
     {
       "step": "quiz: Q1 key differs from the submitted wrong answer (miss is genuine)",
       "ok": true,
-      "detail": "key=\"words\""
+      "detail": "key=\"flow\""
     },
     {
       "step": "quiz: authoring re-scores display against edited keys (Q1 now Correct)",
@@ -561,8 +561,8 @@
     "http://127.0.0.1:8177/src/lib/zip.js",
     "http://127.0.0.1:8177/src/lib/docx.js",
     "http://127.0.0.1:8177/src/lib/pdf.js",
-    "https://example.com/",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.mjs",
+    "https://example.com/",
     "http://127.0.0.1:8177/vendor/pdfjs/pdf.worker.mjs",
     "http://127.0.0.1:8177/index.html",
     "http://127.0.0.1:8177/styles/tokens.css",

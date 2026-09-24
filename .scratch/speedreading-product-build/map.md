@@ -69,3 +69,5 @@ Evidence: components harness 28/28 · gamify harness 25/25 · `node --test` 176/
 **Post-run tickets (2026-09-24):** 22 HC-C human review (ready-for-human), 23 EPUB fixture (ready-for-agent), 24 review-notes cleanup (ready-for-agent).
 
 **Post-run closed:** 23 EPUB fixture (100/100 GO), 24 review-notes cleanup. Open: 22 HC-C human review (ready-for-human).
+
+**HC-C repair wave (2026-09-24):** 25 mobile-bar-overlap (closed), 26 library fidelity, 27 player fidelity, 28 dashboard+quiz fidelity (ready-for-agent). Human HC-C verdict: "looks nothing like the prototypes; most buttons not working" — button break reproduced at mobile widths (25); prototype visuals never ported (26-28).

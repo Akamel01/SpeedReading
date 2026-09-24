@@ -13,10 +13,13 @@
     bottom: 0; left: 0; right: 0;
     top: auto;
     z-index: 10;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.5rem calc(0.25rem + env(safe-area-inset-bottom));
     border-top: 1px solid rgba(0,0,0,0.08);
     background: rgba(246, 244, 236, 0.95);
   }
+  /* Bottom tab bar is nav-only: title and HUD would triple its height and
+     cover content (HC-C finding 25 — clicks landed on the HUD). */
+  header h1, #hud { display: none; }
   header nav {
     display: flex;
     justify-content: space-around;
@@ -28,7 +31,7 @@
     height: 44px; /* ≥44px targets */
     padding: 8px 0;
   }
-  #app { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  #app { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 }
 
 /* Focus mode: when entering Player view, hide chrome (header/HUD) */
@@ -65,7 +68,11 @@ body {
 
 /* S3: page typography scale */
 #app { font-size: calc(16px * var(--font-scale)); }
-#app, body { padding-bottom: 0; }
+body { padding-bottom: 0; }
+@media (max-width: 767px) {
+  /* must outrank the reset above; bar is fixed at the bottom */
+  #app { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+}
 
 :focus-visible {
   outline: 2px solid var(--focus-color);
