@@ -438,39 +438,86 @@ async function main() {
     record('a11y: live region announced a sentence boundary', announced,
       (await evaluate(`document.querySelector('#live-region').textContent.trim()`)).slice(0, 60));
 
-    // 4a. Guided-highlight page mode (ticket 29): page visible, focus highlighted, rest dimmed.
+    // 4a. Guided-highlight page mode (tickets 29/31): the whole rendered line is
+    // highlighted, read text is dimmed, the rest is dimmed.
     await waitFor(`document.querySelectorAll('#view-player .reader-word.is-read').length >= 1`, 8000, 'a word becomes read').catch(() => {});
     const pageVisible = await evaluate(`!document.querySelector('#view-player .reader-page').hidden`);
     const stageHidden = await evaluate(`document.querySelector('#view-player .rsvp-stage').hidden`);
-    const currentCount = await evaluate(`document.querySelectorAll('#view-player .reader-word.is-current').length`);
-    const readCount = await evaluate(`document.querySelectorAll('#view-player .reader-word.is-read').length`);
-    const dimmed = await evaluate(`(() => { const el = document.querySelector('#view-player .reader-word:not(.is-current)'); return el ? getComputedStyle(el).opacity : null; })()`);
-    record('page mode: page shown, stage hidden, focus words highlighted, rest dimmed',
-      pageVisible && stageHidden && currentCount >= 1 && readCount >= 1 && Number(dimmed) < 1,
-      `current=${currentCount} read=${readCount} otherOpacity=${dimmed}`);
+    const lineState = await evaluate(`(() => {
+      const cur = [...document.querySelectorAll('#view-player .reader-word.is-current')];
+      const read = document.querySelectorAll('#view-player .reader-word.is-read').length;
+      const other = document.querySelector('#view-player .reader-word:not(.is-current)');
+      return { count: cur.length, tops: [...new Set(cur.map((el) => el.offsetTop))].length, read, opacity: other ? getComputedStyle(other).opacity : null };
+    })()`);
+    record('page mode: whole line highlighted, read dimmed, rest dimmed',
+      pageVisible && stageHidden && lineState.count >= 3 && lineState.tops === 1 && lineState.read >= 1 && Number(lineState.opacity) < 1,
+      JSON.stringify(lineState));
     const beforeSeek = await evaluate(`document.querySelector('#view-player .player-progress').textContent`);
     await evaluate(`(() => { const els = [...document.querySelectorAll('#view-player .reader-chunk')]; const t = els[Math.min(els.length - 1, 10)]; t.click(); return true; })()`);
     await new Promise((r) => setTimeout(r, 700));
     const afterSeek = await evaluate(`document.querySelector('#view-player .player-progress').textContent`);
     record('page mode: click-to-seek jumps the stream', beforeSeek !== afterSeek, `${beforeSeek} -> ${afterSeek}`);
-    // 4a-2. Width dial (ticket 30): the fixation group is exactly N words.
+    // 4a-2. Page width dial reflows the canvas (line length is the training width).
+    const widthBefore = await evaluate(`getComputedStyle(document.querySelector('#view-player .reader-page')).maxWidth`);
+    await evaluate(`(() => { const s = document.querySelector('.player-setting-page-width'); s.value = 'wide'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await new Promise((r) => setTimeout(r, 800));
+    const widthAfter = await evaluate(`getComputedStyle(document.querySelector('#view-player .reader-page')).maxWidth`);
+    const wideLineTops = await evaluate(`new Set([...document.querySelectorAll('#view-player .reader-word.is-current')].map((el) => el.offsetTop)).size`);
+    record('page mode: width dial reflows the canvas (still one whole line)',
+      widthBefore !== widthAfter && wideLineTops === 1, `${widthBefore} -> ${widthAfter}, line tops=${wideLineTops}`);
+    // 4a-3. Drag-to-pan the canvas (real mouse input); a drag must not seek.
+    await evaluate(`document.querySelector('.player-btn-play').textContent.trim() === 'Pause' ? document.querySelector('.player-btn-play').click() : true`);
+    await waitFor(`document.querySelector('.player-btn-play').textContent.trim() === 'Play'`, 4000, 'paused for the pan test');
+    await new Promise((r) => setTimeout(r, 400));
+    // Synthesized input needs the target to be the active page (later steps
+    // reload and detach; without this the drag is silently dropped).
+    await send('Page.bringToFront', {}, session);
+    // Bigger text guarantees the short calibration chapter overflows the canvas.
+    await evaluate(`(() => { const s = document.querySelector('.player-setting-font-scale'); s.value = '1.5'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await new Promise((r) => setTimeout(r, 600));
+    await evaluate(`document.querySelector('#view-player .reader-page').scrollIntoView({ block: 'center' })`);
+    await new Promise((r) => setTimeout(r, 300));
+    const panBox = await evaluate(`(() => { const r = document.querySelector('#view-player .reader-page').getBoundingClientRect(); return { x: r.x + r.width / 2, y: Math.max(20, r.y + r.height / 2) }; })()`);
+    await evaluate(`window.__panTrace = []; const rp = document.querySelector('#view-player .reader-page');
+      ['pointerdown','pointermove','pointerup','pointercancel','click'].forEach((t) => rp.addEventListener(t, (e) => window.__panTrace.push(t + ':' + Math.round(e.clientY) + ':top=' + rp.scrollTop)));
+      rp.addEventListener('scroll', () => window.__panTrace.push('scroll:top=' + rp.scrollTop));
+      true`);
+    const dragResults = [];
+    const drag = async (dy) => {
+      const res = await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: panBox.x, y: panBox.y, button: 'left', clickCount: 1 }, session);
+      dragResults.push(res?.error?.message ?? 'ok');
+      for (const step of [0.4, 0.7, 1]) {
+        await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: panBox.x, y: panBox.y + dy * step, button: 'left' }, session);
+      }
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: panBox.x, y: panBox.y + dy, button: 'left', clickCount: 1 }, session);
+      await new Promise((r) => setTimeout(r, 400));
+    };
+    const progressBeforePan = await evaluate(`document.querySelector('#view-player .player-progress').textContent`);
+    await drag(-240); // drag up: guaranteed to move once the canvas overflows
+    const panState = await evaluate(`(() => { const el = document.querySelector('#view-player .reader-page'); return { top: el.scrollTop, range: el.scrollHeight - el.clientHeight }; })()`);
+    const progressAfterPan = await evaluate(`document.querySelector('#view-player .player-progress').textContent`);
+    record('page mode: dragging the canvas pans it without seeking',
+      panState.range > 20 && panState.top > 0 && progressAfterPan === progressBeforePan,
+      `range=${panState.range} scrollTop=${panState.top} chunk="${progressBeforePan}"->"${progressAfterPan}"`);
+    await evaluate(`(() => { const s = document.querySelector('.player-setting-font-scale'); s.value = '1'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await new Promise((r) => setTimeout(r, 400));
+    await evaluate(`(() => { const s = document.querySelector('.player-setting-page-width'); s.value = 'medium'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await new Promise((r) => setTimeout(r, 400));
+    // 4a-4. Centred-line mode: the fixation group (group width) on a ruled line.
     await evaluate(`(() => { const s = document.querySelector('.player-setting-highlight-width'); s.value = '4'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
-    await new Promise((r) => setTimeout(r, 700));
-    const width4Words = await evaluate(`document.querySelectorAll('#view-player .reader-word.is-current').length`);
-    record('page mode: highlight width 4 groups exactly 4 words', width4Words === 4, `words=${width4Words}`);
-    // 4a-3. Centred-line mode: one fixation group on a ruled line, neighbours faint.
     await evaluate(`(() => { const s = document.querySelector('.player-setting-reading-mode'); s.value = 'line'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await new Promise((r) => setTimeout(r, 700));
-    const lineState = await evaluate(`({
+    const lineMode = await evaluate(`({
       lineVisible: !document.querySelector('#view-player .reader-line').hidden,
       pageHidden: document.querySelector('#view-player .reader-page').hidden,
       current: document.querySelector('#view-player .reader-line-current').textContent.trim(),
       prev: document.querySelector('#view-player .reader-line-prev').textContent.trim(),
       next: document.querySelector('#view-player .reader-line-next').textContent.trim(),
     })`);
-    record('line mode: centred group with faint neighbours', lineState.lineVisible && lineState.pageHidden
-      && lineState.current.split(/\s+/).length === 4 && lineState.prev.length > 0 && lineState.next.length > 0,
-      JSON.stringify(lineState));
+    record('line mode: centred group with faint neighbours',
+      lineMode.lineVisible && lineMode.pageHidden
+      && lineMode.current.split(/\s+/).length === 4 && lineMode.prev.length > 0 && lineMode.next.length > 0,
+      JSON.stringify(lineMode));
     await evaluate(`(() => { const s = document.querySelector('.player-setting-highlight-width'); s.value = '2'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await new Promise((r) => setTimeout(r, 500));
     await evaluate(`(() => { const s = document.querySelector('.player-setting-reading-mode'); s.value = 'rsvp'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);

@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = {
   goals: {},
   readingMode: 'page',
   highlightWidth: 2,
+  pageWidth: 'medium',
 };
 
 const sections = {

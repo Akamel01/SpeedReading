@@ -13,7 +13,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   let player = null;
   let chunkCount = 0;
   let currentWpm = 300;
-  let settings = { fontScale: 1, textAlign: 'center', orpEnabled: true, chunkSize: 2, reducedMotion: 'auto', drill: false, previewWords: 2, readingMode: 'page', highlightWidth: 2 };
+  let settings = { fontScale: 1, textAlign: 'center', orpEnabled: true, chunkSize: 2, reducedMotion: 'auto', drill: false, previewWords: 2, readingMode: 'page', highlightWidth: 2, pageWidth: 'medium' };
   let recognitionCorrect = 0;
   let recognitionTotal = 0;
   let srMode = false;
@@ -140,10 +140,15 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     ['line', 'Line (centred focus)'],
     ['rsvp', 'RSVP (word stream)'],
   ]);
-  // Highlight width = the fixation group size (2-3 words matches the
-  // perceptual span; wider is phrase pacing, not one-fixation training).
-  const highlightWidthSel = makeSelect('Highlight width', 'highlight-width', [
+  // Highlight width = the fixation group size in Line mode (2-3 words matches
+  // the perceptual span; wider is phrase pacing, not one-fixation training).
+  const highlightWidthSel = makeSelect('Group width (Line)', 'highlight-width', [
     ['1', '1 word'], ['2', '2 words'], ['3', '3 words'], ['4', '4 words'], ['5', '5 words'], ['6', '6 words'],
+  ]);
+  // Page width = the rendered column measure; wider lines mean longer highlight
+  // units in Page mode (the whole rendered line is the highlight).
+  const pageWidthSel = makeSelect('Page width', 'page-width', [
+    ['narrow', 'Narrow (46ch)'], ['medium', 'Medium (62ch)'], ['wide', 'Wide (80ch)'],
   ]);
 
   // Session goal controls live inside the Session disclosure; app.js persists via onGoalChange.
@@ -353,17 +358,36 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     if (group.firstChunk < pageWindow.start + PAGE_WINDOW / 3 || group.firstChunk > pageWindow.end - PAGE_WINDOW / 3) {
       renderPageWindow(group.firstChunk);
     }
-    // Word-precise highlight: the group is `highlightWidth` words, which may
-    // straddle chunk boundaries.
-    let anchor = null;
-    for (const el of readerPage.querySelectorAll('.reader-word')) {
-      const w = Number(el.dataset.word);
-      const inGroup = w >= group.startWord && w < group.endWord;
-      el.classList.toggle('is-current', inGroup);
-      el.classList.toggle('is-read', w < group.startWord);
-      if (inGroup && !anchor) anchor = el.closest('.reader-chunk');
+    // Whole-line highlight, measured live: every word sharing the anchor word's
+    // laid-out top is on the current rendered line (self-correcting, no cache).
+    const words = readerPage.querySelectorAll('.reader-word');
+    if (words.length === 0) return;
+    let anchorWord = null;
+    for (const el of words) {
+      if (Number(el.dataset.word) === group.startWord) { anchorWord = el; break; }
     }
-    if (anchor) anchor.scrollIntoView({ block: 'center', behavior: 'auto' });
+    if (!anchorWord) { words[0].classList.add('is-current'); return; }
+    const top = anchorWord.offsetTop;
+    let anchor = null;
+    for (const el of words) {
+      const elTop = el.offsetTop;
+      const inLine = Math.abs(elTop - top) <= 4;
+      el.classList.toggle('is-current', inLine);
+      el.classList.toggle('is-read', elTop < top - 4);
+      if (inLine && !anchor) anchor = el.closest('.reader-chunk');
+    }
+    // Keep the focus line visible without fighting a manual pan: only recentre
+    // when it would leave the viewport, and scroll the canvas directly
+    // (scrollIntoView would scroll the window instead of the canvas).
+    if (anchor) {
+      const r = anchor.getBoundingClientRect();
+      const pr = readerPage.getBoundingClientRect();
+      const margin = 48;
+      if (r.top < pr.top + margin || r.bottom > pr.bottom - margin) {
+        const posInCanvas = r.top - pr.top + readerPage.scrollTop;
+        readerPage.scrollTop = Math.max(0, posInCanvas - readerPage.clientHeight / 2);
+      }
+    }
     pageIndex = index;
   }
 
@@ -400,12 +424,42 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     player.seek(Math.min(chapterChunks.length - 1, nextChunk));
   });
 
+  // Drag-to-pan the reading canvas (ticket 31): pointer drag scrolls the page;
+  // a short press without movement stays a click-to-seek.
+  let panning = false;
+  let panMoved = false;
+  let panStart = null;
+
+  readerPage.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    panning = true;
+    panMoved = false;
+    panStart = { x: event.clientX, y: event.clientY, top: readerPage.scrollTop };
+    readerPage.setPointerCapture?.(event.pointerId);
+    readerPage.classList.add('is-panning');
+  });
+  readerPage.addEventListener('pointermove', (event) => {
+    if (!panning || !panStart) return;
+    const dy = event.clientY - panStart.y;
+    if (!panMoved && Math.abs(dy) < 5 && Math.abs(event.clientX - panStart.x) < 5) return;
+    panMoved = true;
+    readerPage.scrollTop = panStart.top - dy;
+  });
+  const endPan = () => {
+    panning = false;
+    readerPage.classList.remove('is-panning');
+  };
+  readerPage.addEventListener('pointerup', endPan);
+  readerPage.addEventListener('pointercancel', endPan);
+
   readerPage.addEventListener('click', (event) => {
+    if (panMoved) { panMoved = false; return; } // a drag is not a seek
     const el = event.target.closest?.('.reader-chunk');
     if (!el || !player) return;
     const index = Number(el.dataset.chunk);
     if (Number.isInteger(index)) player.seek(index);
   });
+
 
   function validGoal(g) {
     return !!g && ['wpm', 'words', 'time'].includes(g.type) && Number.isFinite(Number(g.target)) && Number(g.target) > 0;
@@ -450,6 +504,12 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     readerPage.hidden = mode !== 'page';
     readerLine.hidden = mode !== 'line';
     stage.hidden = mode !== 'rsvp';
+    const width = settings.pageWidth ?? 'medium';
+    readerPage.classList.toggle('w-narrow', width === 'narrow');
+    readerPage.classList.toggle('w-medium', width === 'medium');
+    readerPage.classList.toggle('w-wide', width === 'wide');
+    // Line wrapping depends on layout; repaint once the page is visible.
+    if (mode === 'page') requestAnimationFrame(() => paintPage(pageIndex));
   }
 
   function renderChunk({ chunk, orpParts, lookahead }) {
@@ -552,6 +612,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
   drillSel.addEventListener('change', () => onSettingsChange?.({ drill: drillSel.value === 'on' }));
   readingModeSel.addEventListener('change', () => onSettingsChange?.({ readingMode: readingModeSel.value }));
   highlightWidthSel.addEventListener('change', () => onSettingsChange?.({ highlightWidth: Number(highlightWidthSel.value) }));
+  pageWidthSel.addEventListener('change', () => { onSettingsChange?.({ pageWidth: pageWidthSel.value }); });
   previewSel.addEventListener('change', () => onSettingsChange?.({ previewWords: Number(previewSel.value) }));
   motionSel.addEventListener('change', () => {
     onSettingsChange?.({ reducedMotion: motionSel.value });
@@ -756,6 +817,7 @@ export function createPlayerView(root, { onSessionEnd, onExit, onSettingsChange,
     previewSel.value = String(settings.previewWords ?? 2);
     readingModeSel.value = settings.readingMode ?? 'page';
     highlightWidthSel.value = String(settings.highlightWidth ?? 2);
+    pageWidthSel.value = settings.pageWidth ?? 'medium';
     applyReadingMode();
     if (typeof settings.wpm === 'number') currentWpm = settings.wpm;
     speedValue.textContent = `${Math.round(currentWpm)} wpm`;

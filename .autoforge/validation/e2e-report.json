@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-09-24T10:41:04.400Z",
+  "ranAt": "2026-09-24T11:27:51.025Z",
   "browser": "headless Chromium via CDP (ms-playwright cache)",
   "steps": [
     {
@@ -97,7 +97,7 @@
     {
       "step": "resume: pagehide writes profile.activeSession",
       "ok": true,
-      "detail": "{\"sessionId\":\"c78d4623-8546-4015-874f-b68c12192c3d\",\"textId\":\"c02f47ae-705b-4d1e-b419-4d4466fe8aa5\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":149,\"startedAt\":1790246410103,\"savedAt\":1790246410252}"
+      "detail": "{\"sessionId\":\"7ce51c6b-a75e-4cdd-9a02-c7acaebe61be\",\"textId\":\"c5c3aa61-994a-4e07-978b-64da47edf09a\",\"chapterIndex\":1,\"chunkIndex\":0,\"wpm\":300,\"chunkSize\":2,\"elapsedMs\":151,\"startedAt\":1790249211591,\"savedAt\":1790249211742}"
     },
     {
       "step": "chapter-picker: explicit chapter selection opens Chapter Two",
@@ -155,24 +155,29 @@
       "detail": "dash."
     },
     {
-      "step": "page mode: page shown, stage hidden, focus words highlighted, rest dimmed",
+      "step": "page mode: whole line highlighted, read dimmed, rest dimmed",
       "ok": true,
-      "detail": "current=2 read=4 otherOpacity=0.32"
+      "detail": "{\"count\":10,\"tops\":1,\"read\":9,\"opacity\":\"0.504476\"}"
     },
     {
       "step": "page mode: click-to-seek jumps the stream",
       "ok": true,
-      "detail": "Chunk 3 / 3 -> Chunk 21 / 21"
+      "detail": "Chunk 6 / 6 -> Chunk 22 / 22"
     },
     {
-      "step": "page mode: highlight width 4 groups exactly 4 words",
+      "step": "page mode: width dial reflows the canvas (still one whole line)",
       "ok": true,
-      "detail": "words=4"
+      "detail": "620.666px -> 800.859px, line tops=1"
+    },
+    {
+      "step": "page mode: dragging the canvas pans it without seeking",
+      "ok": true,
+      "detail": "range=465 scrollTop=292 chunk=\"Chunk 36 / 36\"->\"Chunk 36 / 36\""
     },
     {
       "step": "line mode: centred group with faint neighbours",
       "ok": true,
-      "detail": "{\"lineVisible\":true,\"pageHidden\":true,\"current\":\"Sentence number 5 carefully\",\"prev\":\"words for comprehension testing!\",\"next\":\"verifies the entire reading\"}"
+      "detail": "{\"lineVisible\":true,\"pageHidden\":true,\"current\":\"4 carefully verifies the\",\"prev\":\"comprehension testing! Sentence number\",\"next\":\"entire reading flow end\"}"
     },
     {
       "step": "reading modes: RSVP toggle swaps the surface and back",
@@ -182,12 +187,12 @@
     {
       "step": "span-drill: preview zone renders upcoming words beside the anchor",
       "ok": true,
-      "detail": "preview=\"a reasonable\""
+      "detail": "preview=\"entire reading\""
     },
     {
       "step": "span-drill: recognition check scores the answer",
       "ok": true,
-      "detail": "Recall check: which word followed “testing”? → not quite — recognition 0/1"
+      "detail": "Recall check: which word followed “end”? → not quite — recognition 0/1"
     },
     {
       "step": "visibility: playback pauses when tab hidden",
@@ -229,7 +234,7 @@
     {
       "step": "summary: exactly one completion announcement",
       "ok": true,
-      "detail": "Session complete. 1961 wpm, — comprehension."
+      "detail": "Session complete. 1781 wpm, — comprehension."
     },
     {
       "step": "summary: unlock moment renders for fresh unlocks",
@@ -243,7 +248,7 @@
     {
       "step": "dashboard: summary shows wpm + comprehension trend",
       "ok": true,
-      "detail": "3 sessions · best 1961 wpm · avg 934 wpm · avg comprehension 0% · trend flat"
+      "detail": "3 sessions · best 1781 wpm · avg 874 wpm · avg comprehension 0% · trend flat"
     },
     {
       "step": "quiz: wrong answers score 0% (scoring is real, not prefill-based)",
@@ -324,7 +329,7 @@
     {
       "step": "player: goal persists in settings per text",
       "ok": true,
-      "detail": "{\"d3447a27-2710-4ed8-86cb-5d08c307b7e2\":{\"type\":\"wpm\",\"target\":400}}"
+      "detail": "{\"8ca6acd0-6c41-4d8a-a329-53792ed67d09\":{\"type\":\"wpm\",\"target\":400}}"
     },
     {
       "step": "player: R restarts at first chunk",
@@ -338,12 +343,12 @@
     {
       "step": "player: pause-excluded elapsed (pauses not double-counted)",
       "ok": true,
-      "detail": "{\"elapsedMs\":19316,\"wall\":20513,\"wpm\":1367,\"words\":440}"
+      "detail": "{\"elapsedMs\":19366,\"wall\":20593,\"wpm\":1363,\"words\":440}"
     },
     {
       "step": "player: WPM uses total elapsed",
       "ok": true,
-      "detail": "wpm=1367 recomputed=1367"
+      "detail": "wpm=1363 recomputed=1363"
     },
     {
       "step": "player: reload with snapshot shows Resume banner",
@@ -419,7 +424,7 @@
     {
       "step": "quiz: Q1 key differs from the submitted wrong answer (miss is genuine)",
       "ok": true,
-      "detail": "key=\"contains\""
+      "detail": "key=\"number\""
     },
     {
       "step": "quiz: authoring re-scores display against edited keys (Q1 now Correct)",
@@ -498,7 +503,7 @@
       "detail": "1 total console events, none critical"
     }
   ],
-  "passed": 105,
+  "passed": 106,
   "failed": 0,
   "networkRequests": [
     "http://127.0.0.1:8177/index.html",
@@ -521,10 +526,10 @@
     "http://127.0.0.1:8177/src/ui/quiz-view.js",
     "http://127.0.0.1:8177/src/ui/dashboard.js",
     "http://127.0.0.1:8177/src/ui/a11y.js",
-    "http://127.0.0.1:8177/src/lib/orp.js",
     "http://127.0.0.1:8177/src/lib/achievements.js",
     "http://127.0.0.1:8177/src/lib/challenges.js",
     "http://127.0.0.1:8177/src/lib/records.js",
+    "http://127.0.0.1:8177/src/lib/orp.js",
     "http://127.0.0.1:8177/src/ui/h.js",
     "http://127.0.0.1:8177/src/ui/gamify-cards.js",
     "http://127.0.0.1:8177/src/ui/gamify-viz.js",

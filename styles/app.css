@@ -223,9 +223,11 @@ label { margin-right: 10px; }
 .reader-page {
   max-width: 62ch;
   margin: 0 auto;
-  max-height: 58vh;
+  box-sizing: border-box;
+  max-height: 62vh;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-4) 40vh;
+  overflow-x: hidden;
+  padding: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
@@ -233,7 +235,13 @@ label { margin-right: 10px; }
   font-size: 1.125rem;
   line-height: 1.95;
   scroll-behavior: auto;
+  cursor: grab;
+  touch-action: none;
 }
+.reader-page.w-narrow { max-width: 46ch; }
+.reader-page.w-medium { max-width: 62ch; }
+.reader-page.w-wide { max-width: 80ch; }
+.reader-page.is-panning { cursor: grabbing; user-select: none; }
 .reader-para { margin: 0 0 1.1em; }
 .reader-chunk { border-radius: var(--radius-sm); padding: 1px 0; cursor: pointer; }
 /* The rest is dimmed; the current fixation group is highlighted at word level. */
